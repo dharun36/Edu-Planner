@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from app.db.database import get_session_factory
 from app.models.material import MaterialChunk, MaterialDocument
@@ -181,3 +181,29 @@ async def get_material_document_detail(material_id: int):
                 for c in chunks
             ]
         }
+
+
+async def delete_material_document(material_id: int):
+    session_factory = get_session_factory()
+    if session_factory is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database is not configured")
+
+    with session_factory() as session:
+        document = session.get(MaterialDocument, material_id)
+        if not document:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Material document not found")
+
+        # Delete from chroma
+        from app.services.material_indexing import get_chroma_collection
+        try:
+            get_chroma_collection().delete(where={"document_id": material_id})
+        except Exception as e:
+            pass # ignore chroma deletion errors if any
+
+        if document.file_path and Path(document.file_path).exists():
+            Path(document.file_path).unlink()
+
+        session.execute(delete(MaterialChunk).where(MaterialChunk.document_id == material_id))
+        session.delete(document)
+        session.commit()
+

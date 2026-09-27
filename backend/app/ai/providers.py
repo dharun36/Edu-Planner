@@ -163,6 +163,56 @@ class OpenRouterProvider(LLMProvider):
                 raise LLMTimeoutError("OpenRouter API request timed out") from e
 
 
+class GroqProvider(LLMProvider):
+    """Provider implementation for Groq API.
+    
+    Used by: Analyst Agent (as primary).
+    """
+    
+    def __init__(self, model: Optional[str] = None, temperature: float = 0.7):
+        settings = get_settings()
+        self.api_key = settings.groq_api_key
+        self.model = model if model else settings.groq_analyst_model
+        self.temperature = temperature
+        self.timeout = settings.llm_timeout_seconds
+        
+        if not self.api_key:
+            raise LLMConfigurationError("GROQ_API_KEY is not configured")
+
+    @_with_retries
+    async def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature,
+        }
+        
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            try:
+                response = await client.post(url, headers=headers, json=payload)
+                response.raise_for_status()
+                data = response.json()
+                
+                choices = data.get("choices", [])
+                if not choices:
+                    raise LLMAPIError("No choices returned from Groq")
+                    
+                return choices[0].get("message", {}).get("content", "")
+            except httpx.TimeoutException as e:
+                raise LLMTimeoutError("Groq API request timed out") from e
+
+
 def get_llm_provider(provider_name: str, model: Optional[str] = None, temperature: float = 0.7) -> LLMProvider:
     """Factory method to get the requested provider.
     
@@ -178,5 +228,7 @@ def get_llm_provider(provider_name: str, model: Optional[str] = None, temperatur
         return GeminiProvider()
     elif provider_name == "openrouter":
         return OpenRouterProvider(model=model, temperature=temperature)
+    elif provider_name == "groq":
+        return GroqProvider(model=model, temperature=temperature)
     else:
         raise ValueError(f"Unknown LLM provider: {provider_name}")

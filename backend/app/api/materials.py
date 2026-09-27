@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from app.dependencies.auth import get_current_user, require_role
 from app.models.user import User
 from app.schemas.material import MaterialDocumentRead, MaterialDocumentDetail, MaterialSearchRequest
-from app.services.material_service import list_material_documents, search_material_documents, upload_material_document, get_material_document_detail
+from app.services.material_service import list_material_documents, search_material_documents, upload_material_document, get_material_document_detail, delete_material_document
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 
@@ -48,3 +48,13 @@ async def get_material_detail(
     _: User = Depends(get_current_user),
 ) -> Any:
     return await get_material_document_detail(material_id)
+
+
+@router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_material(
+    material_id: int,
+    _: User = Depends(get_current_user),
+):
+    from fastapi import Response
+    await delete_material_document(material_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

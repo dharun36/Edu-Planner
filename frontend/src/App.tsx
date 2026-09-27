@@ -13,6 +13,7 @@ import SkillTree from './pages/student/SkillTree';
 import Materials from './pages/student/Materials';
 import Progress from './pages/student/Progress';
 import Profile from './pages/student/Profile';
+import StudentClassroom from './pages/student/StudentClassroom';
 import TeacherLayout from './layouts/TeacherLayout';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import StudentViewer from './pages/teacher/StudentViewer';
@@ -32,6 +33,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['student']} />}>
             <Route element={<StudentLayout />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/classroom/:classId" element={<StudentClassroom />} />
               <Route path="/student/assessment" element={<Assessment />} />
               <Route path="/student/generate" element={<LearningPlanGenerator />} />
               <Route path="/student/skill-tree" element={<SkillTree />} />

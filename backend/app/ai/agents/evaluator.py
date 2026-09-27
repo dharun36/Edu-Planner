@@ -48,7 +48,7 @@ Evaluation Criteria:
 - goal_alignment: Does the plan match the student's learning goal?
 - topic_alignment: Does it actually teach the requested topic?
 - curriculum_alignment: When curriculum_context exists, does the plan respect it? (If none exists, default to true).
-- rag_grounding: When rag_context exists, does the plan remain grounded in the supplied material? (If none exists, default to true).
+- rag_grounding: When rag_context exists, does the plan reference and use the supplied material? Set to false if the plan ignores the provided RAG content. If no rag_context was provided, set to true but note this in issues as 'No RAG context was available — plan is based on general knowledge only'.
 - difficulty_appropriateness: Is the progression appropriate for the student's current skill profile?
 - actionability: Does the plan contain practical learning activities?
 - coherence: Are the sequence, objectives, activities, and assessment strategy consistent?
@@ -110,21 +110,24 @@ async def run_evaluator(state: AgentState) -> Dict[str, Any]:
 
     # Invoke provider
     settings = get_settings()
-    provider_name = "openrouter"
-    model_name = settings.openrouter_evaluator_model
-    logger.info(f"[Agent: Evaluator] Invoking Provider: {provider_name}, Model: {model_name}, Iteration: {state.get('iteration_count', 1)}")
-
-    provider = get_llm_provider(
-        provider_name,
-        model=model_name,
-        temperature=0.0
-    )
     
     try:
+        provider_name = "openrouter"
+        model_name = settings.openrouter_evaluator_model
+        logger.info(f"[Agent: Evaluator] Invoking Provider: {provider_name}, Model: {model_name}, Iteration: {state.get('iteration_count', 1)}")
+        provider = get_llm_provider(provider_name, model=model_name, temperature=0.0)
         raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
     except Exception as e:
-        logger.error(f"Evaluator agent provider error: {e}")
-        raise
+        logger.warning(f"Evaluator agent openrouter error: {e}. Falling back to gemini provider...")
+        try:
+            provider_name = "gemini"
+            model_name = settings.gemini_model
+            logger.info(f"[Agent: Evaluator] Invoking Provider: {provider_name}, Model: {model_name}, Iteration: {state.get('iteration_count', 1)}")
+            provider = get_llm_provider(provider_name, temperature=0.0)
+            raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
+        except Exception as e2:
+            logger.error(f"Evaluator agent provider fallback failed: {e2}")
+            raise
 
     # Parse response safely
     try:

@@ -48,5 +48,24 @@ export const materialsApi = {
   search: async (request: SearchMaterialsRequest): Promise<any> => {
     const response = await apiClient.post('/materials/search', request);
     return response.data;
+  },
+
+  upload: async (payload: { file: File; college: string; semester: string; regulation: string }): Promise<Material> => {
+    const formData = new FormData();
+    formData.append('file', payload.file);
+    formData.append('college', payload.college || 'General');
+    formData.append('semester', payload.semester || 'General');
+    formData.append('regulation', payload.regulation || 'General');
+    
+    const response = await apiClient.post<Material>('/materials', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/materials/${id}`);
   }
 };

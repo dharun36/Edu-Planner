@@ -80,21 +80,34 @@ async def run_analyst(state: AgentState) -> Dict[str, Any]:
 
     # Invoke provider
     settings = get_settings()
-    provider_name = "openrouter"
-    model_name = settings.openrouter_analyst_model
-    logger.info(f"[Agent: Analyst] Invoking Provider: {provider_name}, Model: {model_name}, RAG Chunks: {state.get('rag_chunks_retrieved', 0)}")
+    
+    logger.info(f"[Agent: Analyst] RAG Chunks: {state.get('rag_chunks_retrieved', 0)}")
     
     try:
+        provider_name = "groq"
+        model_name = settings.groq_analyst_model
+        logger.info(f"[Agent: Analyst] Invoking Provider: {provider_name}, Model: {model_name}")
         provider = get_llm_provider(provider_name, model=model_name, temperature=0.7)
         raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
     except Exception as e:
-        logger.warning(f"Analyst agent openrouter error: {e}. Falling back to gemini provider...")
+        logger.warning(f"Analyst agent groq error: {e}. Falling back to openrouter provider...")
         try:
-            fallback_provider = get_llm_provider("gemini")
-            raw_response = await fallback_provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
-        except Exception as fallback_err:
-            logger.error(f"Analyst agent provider fallback failed: {fallback_err}")
-            raise
+            provider_name = "openrouter"
+            model_name = settings.openrouter_analyst_model
+            logger.info(f"[Agent: Analyst] Invoking Provider: {provider_name}, Model: {model_name}")
+            provider = get_llm_provider(provider_name, model=model_name, temperature=0.7)
+            raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
+        except Exception as e2:
+            logger.warning(f"Analyst agent openrouter error: {e2}. Falling back to gemini provider...")
+            try:
+                provider_name = "gemini"
+                model_name = settings.gemini_model
+                logger.info(f"[Agent: Analyst] Invoking Provider: {provider_name}, Model: {model_name}")
+                provider = get_llm_provider(provider_name)
+                raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
+            except Exception as e3:
+                logger.error(f"Analyst agent provider fallback failed: {e3}")
+                raise
 
     # Parse response safely
     try:

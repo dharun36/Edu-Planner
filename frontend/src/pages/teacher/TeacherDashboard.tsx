@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
 import { useAuth } from '../../components/auth/AuthProvider';
-import { Users, BookOpen, AlertCircle, TrendingUp, Loader2, Plus, Copy, Check, School, ShieldCheck, X } from 'lucide-react';
+import { Users, BookOpen, AlertCircle, TrendingUp, Loader2, Plus, Copy, Check, School, ShieldCheck, X, Upload, File as FileIcon, Trash2 } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { teacherApi, TeacherStats, TeacherActivity, StudentProgress } from '../../api/teacher';
 import { classroomApi, Classroom, ClassMember, ClassCreatePayload } from '../../api/classroom';
+import { materialsApi, Material } from '../../api/materials';
 import { useNavigate } from 'react-router-dom';
 
 export default function TeacherDashboard() {
@@ -38,6 +39,21 @@ export default function TeacherDashboard() {
   const [selectedClassForMembers, setSelectedClassForMembers] = useState<Classroom | null>(null);
   const [classMembers, setClassMembers] = useState<ClassMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  // Upload Material Modal
+  const [selectedClassForUpload, setSelectedClassForUpload] = useState<Classroom | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [classMaterials, setClassMaterials] = useState<Material[]>([]);
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
+  const [isDeletingMaterial, setIsDeletingMaterial] = useState<number | null>(null);
+
+  // Delete Class Modal
+  const [classToDelete, setClassToDelete] = useState<Classroom | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     fetchTeacherData();
@@ -101,6 +117,81 @@ export default function TeacherDashboard() {
       console.error('Failed to load class members', err);
     } finally {
       setIsLoadingMembers(false);
+    }
+  };
+
+  const handleViewMaterials = async (cls: Classroom) => {
+    setSelectedClassForUpload(cls);
+    setUploadFile(null);
+    setUploadError('');
+    setUploadSuccess(false);
+    setIsLoadingMaterials(true);
+    try {
+      const allMaterials = await materialsApi.list(cls.college);
+      setClassMaterials(allMaterials.filter(m => m.semester === cls.semester && m.regulation === cls.regulation));
+    } catch (err) {
+      console.error('Failed to load materials', err);
+    } finally {
+      setIsLoadingMaterials(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (id: number) => {
+    setIsDeletingMaterial(id);
+    try {
+      await materialsApi.delete(id);
+      setClassMaterials(prev => prev.filter(m => m.id !== id));
+    } catch (err) {
+      console.error('Failed to delete material', err);
+    } finally {
+      setIsDeletingMaterial(null);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setUploadFile(e.target.files[0]);
+    }
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile || !selectedClassForUpload) return;
+    setIsUploading(true);
+    setUploadError('');
+    setUploadSuccess(false);
+    try {
+      const newMaterial = await materialsApi.upload({
+        file: uploadFile,
+        college: selectedClassForUpload.college || 'General',
+        semester: selectedClassForUpload.semester || 'General',
+        regulation: selectedClassForUpload.regulation || 'General',
+      });
+      setClassMaterials(prev => [newMaterial, ...prev]);
+      setUploadSuccess(true);
+      setUploadFile(null);
+      setTimeout(() => {
+        setUploadSuccess(false);
+      }, 2500);
+    } catch (err: any) {
+      setUploadError(err.response?.data?.detail || 'Failed to upload material.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteClass = async () => {
+    if (!classToDelete) return;
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await classroomApi.deleteClass(classToDelete.id);
+      setClasses(prev => prev.filter(c => c.id !== classToDelete.id));
+      setClassToDelete(null);
+    } catch (err: any) {
+      setDeleteError(err.response?.data?.detail || 'Failed to delete class.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -235,14 +326,30 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-2 flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full text-xs"
+                      className="flex-1 text-xs"
                       onClick={() => handleViewMembers(cls)}
                     >
-                      <Users className="w-3.5 h-3.5 mr-1.5" /> View Members ({cls.member_count})
+                      <Users className="w-3.5 h-3.5 mr-1.5" /> Members ({cls.member_count})
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={() => handleViewMaterials(cls)}
+                    >
+                      <BookOpen className="w-3.5 h-3.5 mr-1.5" /> Materials
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="px-2"
+                      onClick={() => setClassToDelete(cls)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-white" />
                     </Button>
                   </div>
                 </div>
@@ -481,6 +588,139 @@ export default function TeacherDashboard() {
             <div className="pt-2 border-t border-white/10 flex justify-end">
               <Button variant="outline" size="sm" onClick={() => setSelectedClassForMembers(null)}>
                 Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Material Modal */}
+      {selectedClassForUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-surface border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+            <button
+              onClick={() => setSelectedClassForUpload(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center">
+                <BookOpen className="w-5 h-5 mr-2 text-primary" /> Class Materials
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Manage materials for <span className="text-white font-semibold">{selectedClassForUpload.name}</span>.
+              </p>
+            </div>
+
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+              {isLoadingMaterials ? (
+                <div className="text-center py-4"><Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" /></div>
+              ) : classMaterials.length > 0 ? (
+                classMaterials.map(m => (
+                  <div key={m.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+                    <div className="truncate pr-4 flex-1">
+                      <p className="text-sm font-medium text-gray-200 truncate">{m.file_name}</p>
+                    </div>
+                    <Button 
+                      variant="danger" 
+                      size="sm" 
+                      className="px-2" 
+                      onClick={() => handleDeleteMaterial(m.id)}
+                      disabled={isDeletingMaterial === m.id}
+                    >
+                      {isDeletingMaterial === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 text-white" />}
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-xs text-gray-400">No materials uploaded yet.</div>
+              )}
+            </div>
+
+            {uploadError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl">
+                {uploadError}
+              </div>
+            )}
+
+            {uploadSuccess ? (
+              <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl text-green-300 text-center">
+                <Check className="w-8 h-8 mx-auto mb-2 text-green-400" />
+                <p className="font-semibold text-sm">Material Uploaded Successfully!</p>
+                <p className="text-xs text-green-400/80 mt-1">The document is now available to students and indexed for Ask AI.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleUploadSubmit} className="space-y-4">
+                <div className="p-4 border-2 border-dashed border-white/20 rounded-xl bg-black/20 text-center relative hover:border-primary/50 transition-colors">
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.txt,.md"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    required
+                  />
+                  <FileIcon className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                  {uploadFile ? (
+                    <p className="text-sm font-medium text-primary">{uploadFile.name}</p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-300 font-medium">Click to select or drag and drop</p>
+                      <p className="text-xs text-gray-500 mt-1">PDF, DOCX, TXT, MD (Max 10MB)</p>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="outline" className="w-full" onClick={() => setSelectedClassForUpload(null)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="w-full" disabled={isUploading || !uploadFile}>
+                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Upload File
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Class Confirmation Modal */}
+      {classToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-surface border border-red-500/30 rounded-2xl max-w-sm w-full p-6 space-y-6 shadow-2xl relative text-center">
+            <div className="mx-auto w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20 mb-2">
+              <AlertCircle className="w-6 h-6 text-red-500" />
+            </div>
+            
+            <div>
+              <h2 className="text-xl font-bold text-white">Delete Classroom?</h2>
+              <p className="text-sm text-gray-400 mt-2">
+                Are you sure you want to delete <span className="text-white font-semibold">{classToDelete.name}</span>? 
+                This will permanently remove the class and all enrolled students will be kicked out.
+              </p>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" className="w-full" onClick={() => setClassToDelete(null)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="danger" 
+                className="w-full" 
+                onClick={handleDeleteClass}
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Delete Class
               </Button>
             </div>
           </div>

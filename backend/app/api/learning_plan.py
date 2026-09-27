@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,6 +7,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.db.database import get_session_factory
+from app.ai.providers import get_llm_provider
+from app.core.config import get_settings
 from app.models.user import User
 from app.models.learning_plan import LearningPlan, LearningModule, LearningTask
 from app.dependencies.auth import require_role
@@ -154,63 +157,123 @@ async def get_verification_questions(
     topic = plan.topic or "Course Content"
     subject = plan.subject or "General Knowledge"
 
-    questions_data = [
-        {
-            "id": 1,
-            "question_text": f"What is the primary core concept taught in {topic} ({subject})?",
-            "options": [
-                f"A. Fundamental theories and operational principles of {topic}",
-                f"B. Arbitrary ungrounded calculations",
-                f"C. Historical non-technical trivia",
-                f"D. None of the above",
-            ],
-            "correct_answer": f"A. Fundamental theories and operational principles of {topic}",
-        },
-        {
-            "id": 2,
-            "question_text": f"Which methodology is key to applying {topic} effectively?",
-            "options": [
-                f"A. Random guesswork",
-                f"B. Systematic analysis and structured problem-solving in {topic}",
-                f"C. Ignoring foundational prerequisites",
-                f"D. Manual brute-force without validation",
-            ],
-            "correct_answer": f"B. Systematic analysis and structured problem-solving in {topic}",
-        },
-        {
-            "id": 3,
-            "question_text": f"What is a major advantage of mastering {topic}?",
-            "options": [
-                f"A. Decreased efficiency in subject application",
-                f"B. Higher analytical clarity and accurate domain execution",
-                f"C. Complete elimination of all logical reasoning",
-                f"D. No practical benefit",
-            ],
-            "correct_answer": f"B. Higher analytical clarity and accurate domain execution",
-        },
-        {
-            "id": 4,
-            "question_text": f"When evaluating a complex scenario in {subject}, what step should be taken first?",
-            "options": [
-                f"A. Jump directly to final output without verification",
-                f"B. Define core constraints and inspect input domain principles",
-                f"C. Disregard topic boundaries",
-                f"D. Rely entirely on intuition",
-            ],
-            "correct_answer": f"B. Define core constraints and inspect input domain principles",
-        },
-        {
-            "id": 5,
-            "question_text": f"How do the components of {topic} interact within {subject}?",
-            "options": [
-                f"A. Through integrated pathways that optimize learning outcomes",
-                f"B. Independently with zero correlation",
-                f"C. Exclusively in isolated theoretical environments",
-                f"D. In an unpredictable random manner",
-            ],
-            "correct_answer": f"A. Through integrated pathways that optimize learning outcomes",
-        },
-    ]
+    # Extract module titles to give context to the LLM
+    module_titles = [m.title for m in plan.modules] if plan.modules else []
+    modules_context = "\n".join(f"- {title}" for title in module_titles)
+
+    system_prompt = """You are an expert educational assessor.
+Generate exactly 5 multiple-choice questions to test a student's mastery of their learning plan content.
+The questions must cover the provided modules, topic, and subject.
+Each question must have exactly 4 options labeled A, B, C, D.
+Return ONLY valid JSON matching this exact schema, with no markdown code blocks or extra text:
+[
+  {
+    "id": 1,
+    "question_text": "...",
+    "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+    "correct_answer": "A. ..."
+  }
+]"""
+
+    prompt = f"Subject: {subject}\nTopic: {topic}\nModules:\n{modules_context}"
+
+    settings = get_settings()
+    questions_data = None
+
+    try:
+        provider_name = "openrouter"
+        model_name = settings.openrouter_analyst_model
+        provider = get_llm_provider(provider_name, model=model_name, temperature=0.7)
+        raw_response = await provider.generate(prompt=prompt, system_prompt=system_prompt)
+        
+        clean_response = raw_response.strip()
+        if clean_response.startswith("```json"):
+            clean_response = clean_response[7:]
+        elif clean_response.startswith("```"):
+            clean_response = clean_response[3:]
+        if clean_response.endswith("```"):
+            clean_response = clean_response[:-3]
+            
+        questions_data = json.loads(clean_response.strip())
+    except Exception as e:
+        logger.warning(f"OpenRouter verification questions failed: {e}. Falling back to gemini...")
+        try:
+            provider_name = "gemini"
+            model_name = settings.gemini_model
+            provider = get_llm_provider(provider_name)
+            raw_response = await provider.generate(prompt=prompt, system_prompt=system_prompt)
+            
+            clean_response = raw_response.strip()
+            if clean_response.startswith("```json"):
+                clean_response = clean_response[7:]
+            elif clean_response.startswith("```"):
+                clean_response = clean_response[3:]
+            if clean_response.endswith("```"):
+                clean_response = clean_response[:-3]
+                
+            questions_data = json.loads(clean_response.strip())
+        except Exception as e2:
+            logger.error(f"Gemini fallback failed: {e2}. Using hardcoded templates.")
+            questions_data = None
+
+    if not questions_data or not isinstance(questions_data, list) or len(questions_data) < 5:
+        questions_data = [
+            {
+                "id": 1,
+                "question_text": f"What is the primary core concept taught in {topic} ({subject})?",
+                "options": [
+                    f"A. Fundamental theories and operational principles of {topic}",
+                    f"B. Arbitrary ungrounded calculations",
+                    f"C. Historical non-technical trivia",
+                    f"D. None of the above",
+                ],
+                "correct_answer": f"A. Fundamental theories and operational principles of {topic}",
+            },
+            {
+                "id": 2,
+                "question_text": f"Which methodology is key to applying {topic} effectively?",
+                "options": [
+                    f"A. Random guesswork",
+                    f"B. Systematic analysis and structured problem-solving in {topic}",
+                    f"C. Ignoring foundational prerequisites",
+                    f"D. Manual brute-force without validation",
+                ],
+                "correct_answer": f"B. Systematic analysis and structured problem-solving in {topic}",
+            },
+            {
+                "id": 3,
+                "question_text": f"What is a major advantage of mastering {topic}?",
+                "options": [
+                    f"A. Decreased efficiency in subject application",
+                    f"B. Higher analytical clarity and accurate domain execution",
+                    f"C. Complete elimination of all logical reasoning",
+                    f"D. No practical benefit",
+                ],
+                "correct_answer": f"B. Higher analytical clarity and accurate domain execution",
+            },
+            {
+                "id": 4,
+                "question_text": f"When evaluating a complex scenario in {subject}, what step should be taken first?",
+                "options": [
+                    f"A. Jump directly to final output without verification",
+                    f"B. Define core constraints and inspect input domain principles",
+                    f"C. Disregard topic boundaries",
+                    f"D. Rely entirely on intuition",
+                ],
+                "correct_answer": f"B. Define core constraints and inspect input domain principles",
+            },
+            {
+                "id": 5,
+                "question_text": f"How do the components of {topic} interact within {subject}?",
+                "options": [
+                    f"A. Through integrated pathways that optimize learning outcomes",
+                    f"B. Independently with zero correlation",
+                    f"C. Exclusively in isolated theoretical environments",
+                    f"D. In an unpredictable random manner",
+                ],
+                "correct_answer": f"A. Through integrated pathways that optimize learning outcomes",
+            },
+        ]
 
     _VERIFICATION_TESTS_CACHE[plan_id] = {q["id"]: q["correct_answer"] for q in questions_data}
 

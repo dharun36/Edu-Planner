@@ -34,6 +34,10 @@ pnpm-debug.log*
 backend/.venv_test/
 backend/venv2/
 
+# Runtime-generated AI and upload data
+backend/.chroma/
+backend/app/uploads/
+
 # Python virtual environments anywhere
 venv/
 venv*/

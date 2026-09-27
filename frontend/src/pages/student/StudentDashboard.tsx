@@ -28,6 +28,7 @@ import {
 } from '../../api/learningPlans';
 import { progressApi, StudentProgressSummary } from '../../api/progress';
 import { classroomApi, Classroom } from '../../api/classroom';
+import { skillsApi, SkillScores } from '../../api/skills';
 
 function getProfileCompletion(user: any): number {
   const fields = ['phone', 'department', 'year_of_study', 'bio', 'college', 'regulation', 'semester'];
@@ -42,6 +43,7 @@ export default function StudentDashboard() {
   const [activePlan, setActivePlan] = useState<LearningPlan | null>(null);
   const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null);
   const [studentClasses, setStudentClasses] = useState<Classroom[]>([]);
+  const [skillScores, setSkillScores] = useState<SkillScores | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [completingTaskId, setCompletingTaskId] = useState<number | null>(null);
@@ -71,10 +73,11 @@ export default function StudentDashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      const [planRes, summaryRes, classRes] = await Promise.allSettled([
+      const [planRes, summaryRes, classRes, skillsRes] = await Promise.allSettled([
         learningPlansApi.getActivePlan(),
         progressApi.getSummary(),
         classroomApi.getStudentClasses(),
+        skillsApi.getSkills(),
       ]);
 
       if (planRes.status === 'fulfilled') {
@@ -89,6 +92,10 @@ export default function StudentDashboard() {
 
       if (classRes.status === 'fulfilled') {
         setStudentClasses(classRes.value);
+      }
+
+      if (skillsRes.status === 'fulfilled') {
+        setSkillScores(skillsRes.value);
       }
     } catch {
       setError('Failed to load dashboard data.');
@@ -155,8 +162,9 @@ export default function StudentDashboard() {
     try {
       const joinedCls = await classroomApi.joinClass({ code: joinCode.trim() });
       setStudentClasses((prev) => [joinedCls, ...prev]);
-      setJoinSuccessMsg(`Successfully joined ${joinedCls.name}! 🎉`);
+      setShowJoinModal(false);
       setJoinCode('');
+      navigate(`/student/classroom/${joinedCls.id}`);
     } catch (err: any) {
       setJoinError(err.response?.data?.detail || 'Failed to join class. Please check your code.');
     } finally {
@@ -164,7 +172,8 @@ export default function StudentDashboard() {
     }
   };
 
-  const handleLeaveClass = async (classId: number, className: string) => {
+  const handleLeaveClass = async (e: React.MouseEvent, classId: number, className: string) => {
+    e.stopPropagation();
     if (!window.confirm(`Are you sure you want to leave ${className}?`)) return;
     try {
       await classroomApi.leaveClass(classId);
@@ -282,7 +291,7 @@ export default function StudentDashboard() {
             <CardTitle className="text-xl flex items-center">
               <School className="w-5 h-5 mr-2 text-primary" /> My Classes
             </CardTitle>
-            <p className="text-xs text-gray-400 mt-1">Enrolled classrooms from your instructors.</p>
+            <p className="text-xs text-gray-400 mt-1">Click any enrolled classroom to access its materials, skills, and AI learning plan.</p>
           </div>
           <Button
             onClick={() => {
@@ -300,10 +309,14 @@ export default function StudentDashboard() {
           {studentClasses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {studentClasses.map((cls) => (
-                <div key={cls.id} className="p-4 rounded-xl bg-surface-light border border-white/10 hover:border-primary/40 transition-colors flex flex-col justify-between space-y-4">
+                <div
+                  key={cls.id}
+                  onClick={() => navigate(`/student/classroom/${cls.id}`)}
+                  className="p-5 rounded-2xl bg-surface-light border border-white/10 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
+                >
                   <div>
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-lg text-white">{cls.name}</h3>
+                      <h3 className="font-bold text-lg text-white group-hover:text-primary transition-colors">{cls.name}</h3>
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                         {cls.code}
                       </span>
@@ -326,13 +339,13 @@ export default function StudentDashboard() {
                     </div>
                   </div>
 
-                  <div className="pt-2 flex justify-between items-center border-t border-white/5">
-                    <span className="text-[10px] text-green-400 font-semibold flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Enrolled
+                  <div className="pt-3 flex justify-between items-center border-t border-white/5">
+                    <span className="text-xs text-primary font-semibold flex items-center gap-1 group-hover:underline">
+                      Enter Classroom →
                     </span>
                     <button
-                      onClick={() => handleLeaveClass(cls.id, cls.name)}
-                      className="text-xs text-gray-400 hover:text-red-400 flex items-center gap-1 transition-colors"
+                      onClick={(e) => handleLeaveClass(e, cls.id, cls.name)}
+                      className="text-xs text-gray-400 hover:text-red-400 flex items-center gap-1 transition-colors z-10"
                     >
                       <LogOut className="w-3 h-3" /> Leave
                     </button>
@@ -456,6 +469,37 @@ export default function StudentDashboard() {
 
         {/* Right Column: Quick Stats & Actions */}
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Skill Profile</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {skillScores ? (
+                <div className="space-y-3">
+                  {Object.entries(skillScores).map(([key, score]) => {
+                    const label = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    const isStrong = score >= 70;
+                    return (
+                      <div key={key} className="flex justify-between items-center p-3 rounded-lg bg-surface-light border border-white/5">
+                        <span className="text-sm font-medium text-gray-200">{label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{Math.round(score as number)}</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isStrong ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                            {isStrong ? 'Strong' : 'Needs Work'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-400 text-sm border border-dashed border-white/10 rounded-xl bg-white/5">
+                  Complete assignments to unlock skill insights.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>

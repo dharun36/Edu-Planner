@@ -14,7 +14,7 @@ from app.schemas.ai import LearningPlanRequest, LearningPlanResponse
 from app.ai.state import AgentState, SkillScores
 from app.ai.graph import build_learning_graph
 from app.ai.exceptions import LLMConfigurationError, LLMAPIError
-from app.services.material_indexing import search_chunks
+from app.ai.rag import retrieve_rag_context
 
 logger = logging.getLogger(__name__)
 
@@ -101,39 +101,28 @@ async def generate_learning_plan(
     curriculum_context_str = "\n\n".join(curriculum_parts)
 
     # 3. Build RAG Context
-    rag_parts = []
-    search_query = f"{request.subject} {request.topic} {request.learning_goal} {' '.join(weak_skills + missing_skills)}"
-    rag_retrieval_status = "NOT_EXECUTED"
-    retrieved_chunk_count = 0
-    
     try:
-        results = search_chunks(
-            query=search_query,
-            college=request.college,
-            year=request.year,
+        rag_context_str, retrieved_chunk_count = await retrieve_rag_context(
+            subject=request.subject,
+            topic=request.topic,
+            college=current_user.college,
+            year=current_user.year_of_study,
             semester=request.semester,
             regulation=request.regulation,
-            limit=5
+            n_results=5
         )
         
-        documents = results.get("documents", [[]])[0]
-        metadatas = results.get("metadatas", [[]])[0]
-        retrieved_chunk_count = len(documents)
-        
-        if documents:
-            rag_retrieval_status = f"SUCCESS: Retrieved {len(documents)} relevant material chunks from ChromaDB."
-            for doc, meta in zip(documents, metadatas):
-                page_info = f" (Page {meta.get('page_number', '?')})" if meta and meta.get("page_number") else ""
-                doc_name = meta.get("file_name") or meta.get("college") or "Uploaded Material"
-                rag_parts.append(f"--- Document Chunk [{doc_name}]{page_info} ---\n{doc}")
+        if retrieved_chunk_count > 0:
+            rag_retrieval_status = f"SUCCESS: Retrieved {retrieved_chunk_count} relevant material chunks from ChromaDB."
         else:
             rag_retrieval_status = "WARNING: No uploaded materials matching search criteria found in ChromaDB vector store."
             
     except Exception as e:
         logger.warning(f"RAG Retrieval error: {e}")
         rag_retrieval_status = f"ERROR: RAG vector store search failed: {e}"
+        rag_context_str = ""
+        retrieved_chunk_count = 0
         
-    rag_context_str = "\n\n".join(rag_parts)
     logger.info(f"[RAG Status] Status: {rag_retrieval_status}, Chunks Retrieved: {retrieved_chunk_count}")
 
     # 4. Build initial state for Multi-Agent Workflow

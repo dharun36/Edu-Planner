@@ -139,12 +139,9 @@ async def test_ai_api_success(async_client: AsyncClient, test_student):
     }
     
     with patch("app.api.ai.build_learning_graph", return_value=mock_graph), \
-         patch("app.api.ai.search_chunks") as mock_search_chunks:
+         patch("app.api.ai.retrieve_rag_context", new_callable=AsyncMock) as mock_retrieve:
         
-        mock_search_chunks.return_value = {
-            "documents": [["Retrieved RAG Chunk content"]],
-            "metadatas": [[{"page_number": 1}]]
-        }
+        mock_retrieve.return_value = ("Chunk: Retrieved RAG Chunk content", 1)
         try:
             payload = {
                 "subject": "Math",
@@ -205,12 +202,9 @@ async def test_ai_api_provider_failure(async_client: AsyncClient, test_student):
     mock_graph.ainvoke.side_effect = LLMAPIError("API Secret Key is Invalid")
     
     with patch("app.api.ai.build_learning_graph", return_value=mock_graph), \
-         patch("app.api.ai.search_chunks") as mock_search_chunks:
+         patch("app.api.ai.retrieve_rag_context", new_callable=AsyncMock) as mock_retrieve:
         
-        mock_search_chunks.return_value = {
-            "documents": [[]],
-            "metadatas": [[]]
-        }
+        mock_retrieve.return_value = ("", 0)
         try:
             payload = {
                 "subject": "Math",

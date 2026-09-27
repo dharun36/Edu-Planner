@@ -101,21 +101,24 @@ async def run_optimizer(state: AgentState) -> Dict[str, Any]:
 
     # Invoke provider
     settings = get_settings()
-    provider_name = "openrouter"
-    model_name = settings.openrouter_optimizer_model
-    logger.info(f"[Agent: Optimizer] Invoking Provider: {provider_name}, Model: {model_name}")
-
-    provider = get_llm_provider(
-        provider_name,
-        model=model_name,
-        temperature=0.7
-    )
     
     try:
+        provider_name = "openrouter"
+        model_name = settings.openrouter_optimizer_model
+        logger.info(f"[Agent: Optimizer] Invoking Provider: {provider_name}, Model: {model_name}")
+        provider = get_llm_provider(provider_name, model=model_name, temperature=0.7)
         raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
     except Exception as e:
-        logger.error(f"Optimizer agent provider error: {e}")
-        raise
+        logger.warning(f"Optimizer agent openrouter error: {e}. Falling back to gemini provider...")
+        try:
+            provider_name = "gemini"
+            model_name = settings.gemini_model
+            logger.info(f"[Agent: Optimizer] Invoking Provider: {provider_name}, Model: {model_name}")
+            provider = get_llm_provider(provider_name, temperature=0.7)
+            raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
+        except Exception as e2:
+            logger.error(f"Optimizer agent provider fallback failed: {e2}")
+            raise
 
     # Parse response safely
     try:

@@ -19,6 +19,8 @@ def get_max_iterations() -> int:
 
 async def analyst_node(state: AgentState) -> Dict[str, Any]:
     """Node wrapper for Analyst."""
+    rag_chunks = state.get("rag_chunks_retrieved", 0)
+    logger.info(f"[Graph] Starting workflow — RAG chunks available: {rag_chunks}, rag_context present: {bool(state.get('rag_context'))}")
     return await run_analyst(state)
 
 

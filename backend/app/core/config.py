@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     # Analyst agent: OpenRouter / Gemini
     gemini_model: str = "gemini-1.5-flash"
     openrouter_analyst_model: str = "openai/gpt-4o-mini"
+    groq_analyst_model: str = "llama-3.1-70b-versatile"
     # Optimizer agent: GPT-4o-mini via OpenRouter
     openrouter_optimizer_model: str = "openai/gpt-4o-mini"
     # Evaluator agent: Meta-Llama-3.3-70B via OpenRouter
