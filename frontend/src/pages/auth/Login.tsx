@@ -28,7 +28,7 @@ export default function Login() {
       login(access_token, user);
 
       if (user.role === 'student' && !user.onboarding_complete) {
-        navigate('/student/onboarding');
+        navigate('/student/assessment');
       } else {
         const rolePath = user.role.replace('_', '-');
         navigate(`/${rolePath}/dashboard`);

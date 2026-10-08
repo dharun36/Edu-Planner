@@ -68,10 +68,22 @@ async def generate_learning_plan(
     skill_kwargs = {}
     academic_skills = {}
 
+    category_map = {
+        "numerical calculation": "numerical_calculation",
+        "abstract thinking": "abstract_thinking",
+        "logical reasoning": "logical_reasoning",
+        "association & analogy": "association_analogy",
+        "association and analogy": "association_analogy",
+        "spatial imagination": "spatial_imagination",
+    }
+
     for skill in skills:
-        category_normalized = skill.skill_category.lower().replace(" ", "_").replace("/", "_")
-        if category_normalized in SkillScores.model_fields:
-            skill_kwargs[category_normalized] = skill.score
+        cat_key = skill.skill_category.lower().strip()
+        field_name = category_map.get(cat_key)
+        if not field_name:
+            field_name = cat_key.replace("&", "").replace("  ", " ").replace(" ", "_").replace("/", "_").replace("__", "_")
+        if field_name in SkillScores.model_fields:
+            skill_kwargs[field_name] = skill.score
         academic_skills[skill.skill_category] = skill.score
 
     ai_skills = SkillScores(**skill_kwargs)

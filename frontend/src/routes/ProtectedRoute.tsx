@@ -31,7 +31,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, re
   }
 
   if (requireAssessmentComplete && user.role === 'student' && !user.onboarding_complete) {
-    return <Navigate to="/student/onboarding" replace />;
+    return <Navigate to="/student/assessment" replace />;
   }
 
   return <Outlet />;

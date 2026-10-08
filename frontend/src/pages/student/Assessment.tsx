@@ -103,11 +103,11 @@ export default function Assessment() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#0A0A0A]">
-            Baseline Diagnostic Assessment
+            General Learning Capacity Assessment
           </h1>
           <p className="text-sm text-[#737373] leading-relaxed">
-            This diagnostic measures your foundational analytical capabilities across core computer science and logical domains.
-            Your answers initialize your persistent Learner Model.
+            This diagnostic measures your foundational cognitive learning capacity across 5 core dimensions.
+            Your answers establish your persistent Learner Model. Course and topic selection will be completed next.
           </p>
         </div>
 
@@ -192,10 +192,10 @@ export default function Assessment() {
             Assessment Result
           </span>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#0A0A0A] mt-1">
-            Your initial learning profile
+            Your General Learning Capacity Profile
           </h1>
           <p className="text-sm text-[#737373] mt-1">
-            This is what EduPlanner learned about your cognitive baseline and concept readiness.
+            EduPlanner has established your baseline cognitive learning capacity across the 5 core dimensions.
           </p>
         </div>
 
@@ -271,27 +271,27 @@ export default function Assessment() {
           </div>
         </section>
 
-        {/* Recommended starting point & CTA */}
+        {/* Next Step: Select Course & Goal */}
         <section className="bg-white border border-[#E5E5E5] rounded-xl p-6 space-y-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
-            Recommended starting point
+            Next Step
           </span>
           <div className="space-y-1">
             <h3 className="text-lg font-semibold text-[#0A0A0A]">
-              {recommendedTopic}
+              Choose Your Course & Learning Goal
             </h3>
             <p className="text-xs text-[#737373] leading-relaxed">
-              Synthesizing learning modules around this prerequisite will bridge your primary skill gap and establish strong mastery.
+              Your cognitive capacity baseline has been recorded. Now choose the course or topic you want to master to generate your personalized learning plan.
             </p>
           </div>
           <div className="pt-2">
             <Button
               variant="primary"
               size="lg"
-              onClick={() => navigate('/student/plan')}
+              onClick={() => navigate('/student/onboarding')}
               className="w-full sm:w-auto"
             >
-              Build My Learning Plan
+              Choose Course & Learning Goal
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>

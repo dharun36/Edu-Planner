@@ -57,7 +57,7 @@ export default function Register() {
       );
       localStorage.setItem('token', access_token);
       login(access_token, user);
-      navigate('/student/onboarding');
+      navigate('/student/assessment');
     } catch (err: any) {
       setError(
         err.response?.data?.detail ||

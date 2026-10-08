@@ -715,7 +715,41 @@ async def classroom_ask_ai(
                 rag_parts.append(f"Document [{fname}] (Page {pnum or 'N/A'}):\n{doc}")
             rag_context = "\n\n".join(rag_parts)
     except Exception as e:
-        logger.warning(f"Classroom Ask AI RAG retrieval error: {e}")
+        logger.warning(f"Classroom Ask AI RAG vector retrieval error: {e}")
+
+    # Fallback: Query persistent database chunks if vector search returned no context
+    if not rag_context:
+        from app.ai.rag import retrieve_local_material_chunks
+        try:
+            local_context, local_count = retrieve_local_material_chunks(
+                subject=classroom.name,
+                topic=query_text,
+                college=classroom.college or "",
+                n_results=4,
+            )
+            if local_count > 0:
+                rag_context = local_context
+                rag_grounded = True
+                retrieved_chunk_count = local_count
+                for block in local_context.split("\n\n---\n\n"):
+                    lines = block.split("\n", 1)
+                    header = lines[0].replace("[Source: ", "").rstrip("]")
+                    content = lines[1] if len(lines) > 1 else ""
+                    fname = header.split(" (Page ")[0] if " (Page " in header else header
+                    pnum = None
+                    if " (Page " in header:
+                        try:
+                            pnum = int(header.split(" (Page ")[1].rstrip(")"))
+                        except ValueError:
+                            pnum = None
+                    snippet = content[:220] + "..." if len(content) > 220 else content
+                    sources.append(ClassroomAskAISource(
+                        file_name=str(fname),
+                        page_number=pnum,
+                        content_snippet=snippet,
+                    ))
+        except Exception as e:
+            logger.warning(f"Classroom Ask AI local DB fallback error: {e}")
 
     teacher_name = classroom.teacher.full_name if classroom.teacher else "the course instructor"
     system_prompt = (

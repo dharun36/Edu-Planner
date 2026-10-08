@@ -84,8 +84,26 @@ def get_chroma_collection() -> Any:
     return client.get_or_create_collection("college_materials")
 
 
-def material_metadata(*, college: str, semester: str, regulation: str, year: str | None = None, document_id: int | None = None, page_number: int | None = None) -> dict[str, str | int]:
-    metadata: dict[str, str | int] = {"college": college.strip(), "semester": str(semester).strip(), "regulation": str(regulation).strip()}
+def material_metadata(
+    *,
+    college: str,
+    semester: str,
+    regulation: str,
+    year: str | None = None,
+    document_id: int | None = None,
+    page_number: int | None = None,
+    file_name: str | None = None,
+    subject: str | None = None,
+) -> dict[str, str | int]:
+    metadata: dict[str, str | int] = {
+        "college": college.strip(),
+        "semester": str(semester).strip(),
+        "regulation": str(regulation).strip(),
+    }
+    if subject:
+        metadata["subject"] = str(subject).strip()
+    if file_name:
+        metadata["file_name"] = str(file_name).strip()
     if year:
         metadata["year"] = str(year).strip()
     if document_id is not None:
@@ -95,7 +113,18 @@ def material_metadata(*, college: str, semester: str, regulation: str, year: str
     return metadata
 
 
-def index_chunks(chunks: list[ParsedChunk], *, college: str, semester: str, regulation: str, year: str | None = None, document_id: int, content_hash: str) -> list[str]:
+def index_chunks(
+    chunks: list[ParsedChunk],
+    *,
+    college: str,
+    semester: str,
+    regulation: str,
+    year: str | None = None,
+    document_id: int,
+    content_hash: str,
+    file_name: str | None = None,
+    subject: str | None = None,
+) -> list[str]:
     if not chunks:
         return []
     ids = [f"{content_hash}:{index}" for index in range(len(chunks))]
@@ -104,7 +133,19 @@ def index_chunks(chunks: list[ParsedChunk], *, college: str, semester: str, regu
         ids=ids,
         documents=[chunk.content for chunk in chunks],
         embeddings=embeddings,
-        metadatas=[material_metadata(college=college, semester=semester, regulation=regulation, year=year, document_id=document_id, page_number=chunk.page_number) for chunk in chunks],
+        metadatas=[
+            material_metadata(
+                college=college,
+                semester=semester,
+                regulation=regulation,
+                year=year,
+                document_id=document_id,
+                page_number=chunk.page_number,
+                file_name=file_name,
+                subject=subject,
+            )
+            for chunk in chunks
+        ],
     )
     return ids
 

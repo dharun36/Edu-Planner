@@ -44,14 +44,134 @@ def get_db():
 
 
 # ---------------------------------------------------------------------------
-# Required Categories (General / Baseline Assessment)
+# General Learning Capacity Categories & Question Bank
 # ---------------------------------------------------------------------------
-REQUIRED_CATEGORIES = [
+GENERAL_LEARNING_CAPACITY_CATEGORIES = [
+    "Numerical Calculation",
     "Logical Reasoning",
-    "Pattern Recognition",
     "Abstract Thinking",
-    "Spatial Ability",
-    "Verbal Comprehension",
+    "Association & Analogy",
+    "Spatial Imagination",
+]
+
+# Backward compatibility alias
+REQUIRED_CATEGORIES = GENERAL_LEARNING_CAPACITY_CATEGORIES
+
+GENERAL_LEARNING_CAPACITY_QUESTIONS = [
+    # ── 1. Numerical Calculation ──────────────────────────────────────────────
+    {
+        "skill_category": "Numerical Calculation",
+        "text": "A student scores 72 out of 90 on a quantitative evaluation. What is the equivalent percentage?",
+        "options": ["A. 75%", "B. 80%", "C. 82%", "D. 85%"],
+        "correct_answer": "B. 80%",
+        "explanation": "72 ÷ 90 = 0.80, which equals 80%.",
+        "difficulty": "Easy",
+    },
+    {
+        "skill_category": "Numerical Calculation",
+        "text": "If a processor executes 120 instructions in 40 milliseconds, how many instructions will it complete in 150 milliseconds at the exact same rate?",
+        "options": ["A. 300 instructions", "B. 360 instructions", "C. 450 instructions", "D. 500 instructions"],
+        "correct_answer": "C. 450 instructions",
+        "explanation": "Rate = 120 / 40 = 3 instructions per millisecond. 150 ms × 3 = 450 instructions.",
+        "difficulty": "Medium",
+    },
+
+    # ── 2. Logical Reasoning ──────────────────────────────────────────────────
+    {
+        "skill_category": "Logical Reasoning",
+        "text": "All valid deterministic procedures have a termination condition. Merge Sort is a deterministic procedure. What conclusion must logically follow?",
+        "options": [
+            "A. Merge Sort has a termination condition.",
+            "B. Everything with a termination condition is Merge Sort.",
+            "C. Merge Sort is the fastest deterministic procedure.",
+            "D. Only sorting procedures terminate.",
+        ],
+        "correct_answer": "A. Merge Sort has a termination condition.",
+        "explanation": "By categorical syllogism: if all members of set A have property P, and M is in set A, M necessarily has property P.",
+        "difficulty": "Easy",
+    },
+    {
+        "skill_category": "Logical Reasoning",
+        "text": "Consider the rule: 'If condition X occurs, then outcome Y is guaranteed.' Observation shows that outcome Y did NOT occur. What must be true?",
+        "options": [
+            "A. Condition X occurred anyway.",
+            "B. Condition X did not occur.",
+            "C. Outcome Y will occur later.",
+            "D. Condition X has no relation to outcome Y.",
+        ],
+        "correct_answer": "B. Condition X did not occur.",
+        "explanation": "By modus tollens (contrapositive logic): (X → Y) implies (¬Y → ¬X). Since Y did not occur, X cannot have occurred.",
+        "difficulty": "Medium",
+    },
+
+    # ── 3. Abstract Thinking ──────────────────────────────────────────────────
+    {
+        "skill_category": "Abstract Thinking",
+        "text": "Identify the underlying pattern in the sequence: 2, 6, 12, 20, 30, ___. What is the next term?",
+        "options": ["A. 40", "B. 42", "C. 44", "D. 48"],
+        "correct_answer": "B. 42",
+        "explanation": "The differences between successive terms are +4, +6, +8, +10. The next difference is +12, so 30 + 12 = 42 (also n·(n+1) for n=6: 6×7=42).",
+        "difficulty": "Medium",
+    },
+    {
+        "skill_category": "Abstract Thinking",
+        "text": "Consider the conceptual relationship: 'Seed is to Plant as Hypothesis is to ___'?",
+        "options": [
+            "A. Experiment",
+            "B. Scientific Theory",
+            "C. Question",
+            "D. Observation",
+        ],
+        "correct_answer": "B. Scientific Theory",
+        "explanation": "A seed is the foundational starting point that matures into a full plant; a validated hypothesis matures into a comprehensive scientific theory.",
+        "difficulty": "Easy",
+    },
+
+    # ── 4. Association & Analogy ──────────────────────────────────────────────
+    {
+        "skill_category": "Association & Analogy",
+        "text": "Architectural Blueprint is to Completed Building as System Specification is to ___?",
+        "options": [
+            "A. Software Program",
+            "B. Computer Hardware",
+            "C. Power Supply",
+            "D. Network Cable",
+        ],
+        "correct_answer": "A. Software Program",
+        "explanation": "A blueprint is the design model implemented to build a physical structure; a specification is the design model implemented to construct a software program.",
+        "difficulty": "Easy",
+    },
+    {
+        "skill_category": "Association & Analogy",
+        "text": "Compass is to Navigation as Clock is to ___?",
+        "options": [
+            "A. Distance",
+            "B. Timekeeping",
+            "C. Speed",
+            "D. Rotation",
+        ],
+        "correct_answer": "B. Timekeeping",
+        "explanation": "A compass is an instrument whose primary purpose is navigation; a clock is an instrument whose primary purpose is timekeeping.",
+        "difficulty": "Easy",
+    },
+
+    # ── 5. Spatial Imagination ────────────────────────────────────────────────
+    {
+        "skill_category": "Spatial Imagination",
+        "text": "A solid wooden cube has all 6 outer faces painted blue. If it is cut into 27 equal small cubes (3×3×3 grid), how many small cubes have blue paint on EXACTLY 3 faces?",
+        "options": ["A. 4 cubes", "B. 6 cubes", "C. 8 cubes", "D. 12 cubes"],
+        "correct_answer": "C. 8 cubes",
+        "explanation": "Only cubes at the 8 corners/vertices of the cube have three painted faces exposed.",
+        "difficulty": "Medium",
+    },
+    {
+        "skill_category": "Spatial Imagination",
+        "text": "An autonomous drone starts facing North. It rotates 90° clockwise, then 180° counter-clockwise, and finally 90° clockwise. What direction is it facing now?",
+        "options": ["A. North", "B. East", "C. South", "D. West"],
+        "correct_answer": "A. North",
+        "explanation": "Starting North: +90° = East; -180° = West; +90° = North. The cumulative net rotation is +90 - 180 + 90 = 0° (North).",
+        "difficulty": "Easy",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -517,37 +637,23 @@ def start_assessment(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Start or resume a diagnostic assessment.
+    Start or resume the initial diagnostic assessment.
 
-    Pass `subject` and `topic` query params so the API can seed domain-specific
-    questions into the DB and initialise the learner model.  Falls back to the
-    student's stored learning_subject / learning_topic if not provided.
+    Evaluates the student across 5 general learning capacity dimensions:
+    Numerical Calculation, Logical Reasoning, Abstract Thinking,
+    Association & Analogy, and Spatial Imagination.
+    Course and subject selection are conducted later.
     """
     if current_user.role != "student":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Only students can take assessments"
         )
 
-    # Resolve subject/topic from params or stored profile
-    eff_subject = subject or current_user.learning_subject
-    eff_topic = topic or current_user.learning_topic
+    # Seed general learning capacity questions into DB
+    _ensure_skill_questions_in_db(db, GENERAL_LEARNING_CAPACITY_QUESTIONS)
 
-    if not eff_subject:
-        bank_questions = _generic_questions_for_subject_topic("General", "Core Concepts")
-        _ensure_skill_questions_in_db(db, bank_questions)
-        unique_cats = list(dict.fromkeys(q["skill_category"] for q in bank_questions))
-        _get_or_create_subject_skills(db, current_user.id, unique_cats)
-    else:
-        eff_topic = eff_topic or "Core Concepts"
-        # Seed domain questions into DB
-        bank_questions = _get_bank_questions(eff_subject, eff_topic)
-        if not bank_questions:
-            bank_questions = _generic_questions_for_subject_topic(eff_subject, eff_topic)
-        _ensure_skill_questions_in_db(db, bank_questions)
-
-        # Initialise StudentSkill rows for all relevant categories
-        unique_cats = list(dict.fromkeys(q["skill_category"] for q in bank_questions))
-        _get_or_create_subject_skills(db, current_user.id, unique_cats)
+    # Initialise StudentSkill rows (score=0.0) for the 5 general categories if not already present
+    _get_or_create_subject_skills(db, current_user.id, GENERAL_LEARNING_CAPACITY_CATEGORIES)
 
     # Check for an uncompleted assessment
     existing = db.execute(
@@ -577,7 +683,7 @@ def get_assessment_questions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Return all active diagnostic questions for the given assessment."""
+    """Return all active general learning capacity questions for the assessment."""
     assessment = db.get(DiagnosticAssessment, assessment_id)
     if not assessment or assessment.user_id != current_user.id:
         raise HTTPException(
@@ -589,27 +695,14 @@ def get_assessment_questions(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Assessment already completed"
         )
 
-    # Resolve subject/topic
-    eff_subject = subject or current_user.learning_subject
-    eff_topic = topic or current_user.learning_topic
-
-    if not eff_subject:
-        eff_subject = "General"
-        eff_topic = "Core Concepts"
-
-    eff_topic = eff_topic or "Core Concepts"
-    bank_questions = _get_bank_questions(eff_subject, eff_topic)
-    if not bank_questions:
-        bank_questions = _generic_questions_for_subject_topic(eff_subject, eff_topic)
-    _ensure_skill_questions_in_db(db, bank_questions)
-
-    target_categories = list(dict.fromkeys(q["skill_category"] for q in bank_questions))
+    # Ensure questions are present in DB
+    _ensure_skill_questions_in_db(db, GENERAL_LEARNING_CAPACITY_QUESTIONS)
 
     questions = db.execute(
         select(DiagnosticQuestion).where(
             DiagnosticQuestion.is_active == True,
-            DiagnosticQuestion.skill_category.in_(target_categories),
-        )
+            DiagnosticQuestion.skill_category.in_(GENERAL_LEARNING_CAPACITY_CATEGORIES),
+        ).order_by(DiagnosticQuestion.id.asc())
     ).scalars().all()
 
     return questions
@@ -623,12 +716,8 @@ def submit_assessment(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Grade the diagnostic assessment and initialise the Persistent Learner Model.
-
-    For each skill category tested:
-    - Calculate raw score (correct / total) as a percentage.
-    - Upsert the StudentSkill record.
-    - Record history snapshot in StudentSkillHistory.
+    Grade the general learning capacity diagnostic assessment and initialise the
+    Persistent Learner Model across the 5 cognitive dimensions.
     """
     assessment = db.get(DiagnosticAssessment, assessment_id)
     if not assessment or assessment.user_id != current_user.id:
@@ -641,15 +730,18 @@ def submit_assessment(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Assessment already completed"
         )
 
-    # Load all active questions
-    all_questions = db.execute(
-        select(DiagnosticQuestion).where(DiagnosticQuestion.is_active == True)
+    # Load active general learning capacity questions
+    active_questions = db.execute(
+        select(DiagnosticQuestion).where(
+            DiagnosticQuestion.is_active == True,
+            DiagnosticQuestion.skill_category.in_(GENERAL_LEARNING_CAPACITY_CATEGORIES),
+        )
     ).scalars().all()
-    question_map = {q.id: q for q in all_questions}
+    question_map = {q.id: q for q in active_questions}
 
     # Count per-category correct/total
-    category_correct: dict[str, int] = {}
-    category_total: dict[str, int] = {}
+    category_correct: dict[str, int] = {cat: 0 for cat in GENERAL_LEARNING_CAPACITY_CATEGORIES}
+    category_total: dict[str, int] = {cat: 0 for cat in GENERAL_LEARNING_CAPACITY_CATEGORIES}
 
     answered_ids = set()
 
@@ -670,30 +762,30 @@ def submit_assessment(
         answered_ids.add(q.id)
 
         cat = q.skill_category
-        category_correct.setdefault(cat, 0)
-        category_total.setdefault(cat, 0)
-        category_total[cat] += 1
+        category_total[cat] = category_total.get(cat, 0) + 1
         if is_correct:
-            category_correct[cat] += 1
+            category_correct[cat] = category_correct.get(cat, 0) + 1
 
     # Record unanswered questions as incorrect
-    for q in all_questions:
+    for q in active_questions:
         if q.id not in answered_ids:
             cat = q.skill_category
-            if cat in category_total:
-                category_total[cat] += 1
-                attempt = DiagnosticAttempt(
-                    assessment_id=assessment_id,
-                    question_id=q.id,
-                    selected_answer=None,
-                    is_correct=False,
-                )
-                db.add(attempt)
+            category_total[cat] = category_total.get(cat, 0) + 1
+            attempt = DiagnosticAttempt(
+                assessment_id=assessment_id,
+                question_id=q.id,
+                selected_answer=None,
+                is_correct=False,
+            )
+            db.add(attempt)
 
     # Update StudentSkill for each category
     results = []
-    for category, total in category_total.items():
-        score = round((category_correct.get(category, 0) / max(total, 1)) * 100.0, 1)
+    now = datetime.now(timezone.utc)
+    for category in GENERAL_LEARNING_CAPACITY_CATEGORIES:
+        total = category_total.get(category, 0)
+        correct = category_correct.get(category, 0)
+        score = round((correct / max(total, 1)) * 100.0, 1)
 
         student_skill = db.execute(
             select(StudentSkill).where(
@@ -702,10 +794,7 @@ def submit_assessment(
             )
         ).scalar_one_or_none()
 
-        now = datetime.now(timezone.utc)
-
         if student_skill:
-            # Record previous score in history
             db.add(StudentSkillHistory(
                 user_id=current_user.id,
                 skill_category=category,
@@ -727,12 +816,12 @@ def submit_assessment(
         results.append({"skill_category": category, "score": score})
 
     assessment.is_completed = True
-    assessment.completed_at = datetime.now(timezone.utc)
+    assessment.completed_at = now
     current_user.onboarding_complete = True
     db.commit()
 
     return {
-        "message": "Diagnostic assessment completed. Your learner model has been initialised.",
+        "message": "General learning capacity assessment completed. Your cognitive profile has been initialised.",
         "results": results,
     }
 

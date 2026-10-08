@@ -21,7 +21,7 @@ export default function Onboarding() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleStep1Submit = async (e: React.FormEvent) => {
+  const handleStepSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !topic.trim()) {
       setError('Please provide both a subject domain and topic.');
@@ -40,10 +40,10 @@ export default function Onboarding() {
       if (token) {
         login(token, updatedUser);
       }
-      navigate('/student/assessment');
+      navigate('/student/plan');
     } catch {
-      setError('Failed to save learning goal. Continuing to diagnostic assessment.');
-      navigate('/student/assessment');
+      setError('Failed to save learning goal. Continuing to learning plan.');
+      navigate('/student/plan');
     } finally {
       setIsSaving(false);
     }
@@ -62,16 +62,18 @@ export default function Onboarding() {
       </button>
 
       <div className="w-full max-w-md space-y-8">
-        {/* Monochromatic Progress Indicator: ● ─── ○ ─── ○ */}
+        {/* Monochromatic Progress Indicator: ✓ Assessment ─── ● Course ─── ○ Plan */}
         <div className="flex items-center justify-center gap-3 text-xs">
+          <div className="flex items-center gap-1.5 text-[#0A0A0A]">
+            <div className="w-4 h-4 rounded-full bg-[#0A0A0A] text-white flex items-center justify-center text-[10px] font-bold">
+              ✓
+            </div>
+            <span className="text-[11px] font-semibold tracking-wider uppercase">Assessment</span>
+          </div>
+          <div className="w-8 h-px bg-[#0A0A0A]" />
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-[#0A0A0A]" />
-            <span className="text-[11px] font-semibold text-[#0A0A0A] tracking-wider uppercase">Goal</span>
-          </div>
-          <div className="w-8 h-px bg-[#E5E5E5]" />
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full border border-[#A3A3A3] bg-white" />
-            <span className="text-[11px] text-[#A3A3A3] tracking-wider uppercase">Assessment</span>
+            <span className="text-[11px] font-semibold text-[#0A0A0A] tracking-wider uppercase">Course & Goal</span>
           </div>
           <div className="w-8 h-px bg-[#E5E5E5]" />
           <div className="flex items-center gap-2">
@@ -83,10 +85,10 @@ export default function Onboarding() {
         {/* Header Typography */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#0A0A0A]">
-            Let's personalize your learning.
+            Choose Your Course & Goal
           </h1>
           <p className="text-sm text-[#737373]">
-            What do you want to learn?
+            What course or subject domain would you like to master?
           </p>
         </div>
 
@@ -97,14 +99,14 @@ export default function Onboarding() {
         )}
 
         {/* Guided Form */}
-        <form onSubmit={handleStep1Submit} className="space-y-5 bg-white border border-[#E5E5E5] rounded-xl p-6">
+        <form onSubmit={handleStepSubmit} className="space-y-5 bg-white border border-[#E5E5E5] rounded-xl p-6">
           <div className="space-y-1.5">
             <label className="text-xs font-medium uppercase tracking-wider text-[#525252]">
-              Subject
+              Course / Subject
             </label>
             <Input
               required
-              placeholder="e.g. Data Structures"
+              placeholder="e.g. Data Structures & Algorithms"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
             />
@@ -138,10 +140,10 @@ export default function Onboarding() {
 
           <div className="pt-2 flex items-center justify-between">
             <span className="text-xs text-[#737373]">
-              Step 1 of 3
+              Step 2 of 3
             </span>
             <Button type="submit" variant="primary" isLoading={isSaving}>
-              Continue
+              Continue to Plan
               <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
           </div>

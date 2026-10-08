@@ -128,6 +128,7 @@ async def upload_material_document(
                     regulation=regulation,
                     document_id=document.id,
                     content_hash=content_hash,
+                    file_name=file.filename,
                 )
             except RuntimeError:
                 # Keep local uploads usable when optional vector-indexing packages
@@ -180,12 +181,20 @@ async def search_material_documents(payload: MaterialSearchRequest) -> dict[str,
 
         terms = payload.query.lower().split()
         with session_factory() as session:
-            query = select(MaterialChunk).where(
-                MaterialChunk.college == payload.college,
-                MaterialChunk.semester == payload.semester,
-                MaterialChunk.regulation == payload.regulation,
-            )
-            chunks = session.execute(query).scalars().all()
+            conditions = []
+            if payload.college and payload.college != "General":
+                conditions.append(MaterialChunk.college == payload.college)
+            if payload.semester and payload.semester != "General":
+                conditions.append(MaterialChunk.semester == payload.semester)
+            
+            if conditions:
+                query = select(MaterialChunk).where(*conditions)
+                chunks = session.execute(query).scalars().all()
+            else:
+                chunks = []
+
+            if not chunks:
+                chunks = session.execute(select(MaterialChunk)).scalars().all()
 
         ranked = sorted(
             chunks,
