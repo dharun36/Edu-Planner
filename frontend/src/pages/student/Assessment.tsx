@@ -4,6 +4,7 @@ import { Button } from '../../components/common/Button';
 import { assessmentApi, Question } from '../../api/assessment';
 import { CheckCircle2, ChevronRight, Brain, AlertCircle, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../components/auth/AuthProvider';
 
 interface SkillResult {
   skill_category: string;
@@ -17,6 +18,7 @@ interface AssessmentResult {
 
 export default function Assessment() {
   const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
   const [assessmentId, setAssessmentId] = useState<number | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentStep, setCurrentStep] = useState<'intro' | 'questions' | 'results'>('intro');
@@ -63,6 +65,9 @@ export default function Assessment() {
         selected_answer: selected,
       }));
       const res = await assessmentApi.submit(assessmentId, { answers: answersList });
+      if (user) {
+        updateUser({ ...user, onboarding_complete: true });
+      }
       setResults(res as AssessmentResult);
       setCurrentStep('results');
     } catch {
@@ -85,10 +90,10 @@ export default function Assessment() {
             <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 border border-primary/20">
               <Brain className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl">5-D Knowledge Assessment</CardTitle>
+            <CardTitle className="text-2xl">General Baseline Assessment</CardTitle>
             <p className="text-gray-400 mt-2">
-              EduPlanner will evaluate your skills across 5 cognitive dimensions to build your
-              personalised learning plan.
+              This introductory assessment measures five broad learning skills. Your results
+              help EduPlanner identify the skills to strengthen before you choose a subject.
             </p>
           </CardHeader>
           <CardContent className="text-center space-y-6">
@@ -101,7 +106,7 @@ export default function Assessment() {
               ))}
             </div>
             {error && (
-              <div className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-xl">
+              <div className="flex items-center gap-2 text-neutral-400 text-sm bg-neutral-400/10 p-3 rounded-xl">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 {error}
               </div>
@@ -121,8 +126,8 @@ export default function Assessment() {
       <div className="max-w-2xl mx-auto mt-12 space-y-6">
         <Card className="border-primary/30">
           <CardHeader className="text-center pb-0">
-            <div className="mx-auto bg-green-500/20 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-400" />
+            <div className="mx-auto bg-neutral-500/20 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-8 h-8 text-neutral-400" />
             </div>
             <CardTitle className="text-2xl">Assessment Complete 🎉</CardTitle>
             <p className="text-gray-400 mt-2">Your skill profile has been updated.</p>
@@ -205,7 +210,7 @@ export default function Assessment() {
                   onClick={() => handleSelectOption(currentQuestion.id, option)}
                   className={`w-full text-left p-4 rounded-xl border transition-all ${
                     isSelected
-                      ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(59,130,246,0.15)]'
+                      ? 'bg-primary/20 border-primary/50 text-white shadow-[0_0_15px_rgba(115,115,115,0.15)]'
                       : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
                   }`}
                 >
@@ -217,7 +222,7 @@ export default function Assessment() {
 
           <div className="mt-8 flex justify-end items-center gap-4">
             {error && (
-              <div className="mr-auto flex items-center text-red-400 text-sm">
+              <div className="mr-auto flex items-center text-neutral-400 text-sm">
                 <AlertCircle className="w-4 h-4 mr-2" />
                 {error}
               </div>

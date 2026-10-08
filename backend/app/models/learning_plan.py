@@ -1,8 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
 
 class LearningPlan(Base):
     __tablename__ = "learning_plans"
@@ -13,9 +18,9 @@ class LearningPlan(Base):
     topic: Mapped[str] = mapped_column(String(255))
     learning_goal: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(50), default="active", index=True)  # active, completed, archived
-    
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     # Relationships
     user: Mapped["User"] = relationship("User", backref="learning_plans")  # type: ignore
@@ -31,9 +36,9 @@ class LearningModule(Base):
     description: Mapped[str] = mapped_column(Text, nullable=True)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, in_progress, completed
-    
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     # Relationships
     learning_plan: Mapped["LearningPlan"] = relationship("LearningPlan", back_populates="modules")
@@ -50,9 +55,18 @@ class LearningTask(Base):
     task_type: Mapped[str] = mapped_column(String(50), default="lesson")  # lesson, practice, assessment
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
-    
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    skill_id: Mapped[int | None] = mapped_column(Integer, ForeignKey('skills.id', ondelete='SET NULL'), nullable=True, index=True)
+    estimated_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    difficulty: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # --- MVP: Learning Workspace Content ---
+    # These fields make each task a real instructional unit, not just a checklist item.
+    learning_objective: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)  # Explanation / lesson content
+    practice_activity: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     # Relationships
     module: Mapped["LearningModule"] = relationship("LearningModule", back_populates="tasks")

@@ -66,11 +66,11 @@ import {
 function FileBadge({ name }: { name: string }) {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
   const map: Record<string, { label: string; bg: string; text: string }> = {
-    pdf: { label: 'PDF', bg: 'bg-red-500/20', text: 'text-red-400' },
-    docx: { label: 'DOCX', bg: 'bg-blue-500/20', text: 'text-blue-400' },
-    pptx: { label: 'PPTX', bg: 'bg-orange-500/20', text: 'text-orange-400' },
+    pdf: { label: 'PDF', bg: 'bg-neutral-500/20', text: 'text-neutral-400' },
+    docx: { label: 'DOCX', bg: 'bg-neutral-500/20', text: 'text-neutral-400' },
+    pptx: { label: 'PPTX', bg: 'bg-neutral-500/20', text: 'text-neutral-400' },
     txt: { label: 'TXT', bg: 'bg-gray-500/20', text: 'text-gray-400' },
-    md: { label: 'MD', bg: 'bg-green-500/20', text: 'text-green-400' },
+    md: { label: 'MD', bg: 'bg-neutral-500/20', text: 'text-neutral-400' },
   };
   const { label, bg, text } = map[ext] ?? { label: ext.toUpperCase() || 'FILE', bg: 'bg-white/10', text: 'text-gray-400' };
   return (
@@ -83,17 +83,17 @@ function FileBadge({ name }: { name: string }) {
 /* ── Skill Level Config ───────────────────────────────────────── */
 function getSkillConfig(score: number) {
   const pct = Math.round(score);
-  if (pct >= 80) return { level: 'Advanced', color: 'purple', hex: '#a855f7' };
-  if (pct >= 50) return { level: 'Intermediate', color: 'green', hex: '#22c55e' };
-  if (pct >= 25) return { level: 'Developing', color: 'yellow', hex: '#eab308' };
-  return { level: 'Beginner', color: 'blue', hex: '#3b82f6' };
+  if (pct >= 80) return { level: 'Advanced', color: 'dark', hex: '#171717' };
+  if (pct >= 50) return { level: 'Intermediate', color: 'medium', hex: '#525252' };
+  if (pct >= 25) return { level: 'Developing', color: 'light', hex: '#a3a3a3' };
+  return { level: 'Beginner', color: 'muted', hex: '#737373' };
 }
 
 const colorMap: Record<string, { text: string; bg: string; border: string }> = {
-  purple: { text: 'text-purple-400', bg: 'bg-purple-500', border: 'border-purple-500/40' },
-  green: { text: 'text-green-400', bg: 'bg-green-500', border: 'border-green-500/40' },
-  yellow: { text: 'text-yellow-400', bg: 'bg-yellow-500', border: 'border-yellow-500/40' },
-  blue: { text: 'text-blue-400', bg: 'bg-blue-500', border: 'border-blue-500/40' },
+  dark: { text: 'text-neutral-200', bg: 'bg-neutral-800', border: 'border-neutral-700' },
+  medium: { text: 'text-neutral-300', bg: 'bg-neutral-600', border: 'border-neutral-500' },
+  light: { text: 'text-neutral-400', bg: 'bg-neutral-400', border: 'border-neutral-400' },
+  muted: { text: 'text-neutral-500', bg: 'bg-neutral-500', border: 'border-neutral-500' },
 };
 
 /* ── View Document Modal ──────────────────────────────────────── */
@@ -551,8 +551,8 @@ export default function StudentClassroom() {
 
   if (error || !classroom) {
     return (
-      <div className="max-w-xl mx-auto mt-12 p-6 bg-surface border border-red-500/30 rounded-2xl text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+      <div className="max-w-xl mx-auto mt-12 p-6 bg-surface border border-neutral-500/30 rounded-2xl text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-neutral-500/20 text-neutral-400 flex items-center justify-center mx-auto">
           <AlertCircle className="w-6 h-6" />
         </div>
         <h2 className="text-xl font-bold text-white">Classroom Access Error</h2>
@@ -581,14 +581,14 @@ export default function StudentClassroom() {
           </button>
           <button
             onClick={handleLeaveClass}
-            className="inline-flex items-center text-xs text-gray-400 hover:text-red-400 transition-colors"
+            className="inline-flex items-center text-xs text-gray-400 hover:text-neutral-400 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5 mr-1" /> Leave Classroom
           </button>
         </div>
 
         {/* ── Classroom Header Banner ────────────────────────────── */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/20 via-purple-900/20 to-blue-900/20 border border-primary/30 p-6 md:p-8 shadow-xl">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/20 via-neutral-900/20 to-neutral-900/20 border border-primary/30 p-6 md:p-8 shadow-xl">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -627,7 +627,7 @@ export default function StudentClassroom() {
                 className="p-2.5 bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white rounded-lg transition-colors"
                 title="Copy Classroom Code"
               >
-                {copiedCode ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+                {copiedCode ? <Check className="w-5 h-5 text-neutral-400" /> : <Copy className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -676,7 +676,7 @@ export default function StudentClassroom() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-6 flex items-center gap-4">
-                  <div className="p-3 bg-blue-500/20 text-blue-400 rounded-2xl border border-blue-500/30">
+                  <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
                     <FileText className="w-6 h-6" />
                   </div>
                   <div>
@@ -688,7 +688,7 @@ export default function StudentClassroom() {
 
               <Card>
                 <CardContent className="p-6 flex items-center gap-4">
-                  <div className="p-3 bg-green-500/20 text-green-400 rounded-2xl border border-green-500/30">
+                  <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
                     <TrendingUp className="w-6 h-6" />
                   </div>
                   <div>
@@ -700,7 +700,7 @@ export default function StudentClassroom() {
 
               <Card>
                 <CardContent className="p-6 flex items-center gap-4">
-                  <div className="p-3 bg-purple-500/20 text-purple-400 rounded-2xl border border-purple-500/30">
+                  <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
                     <BrainCircuit className="w-6 h-6" />
                   </div>
                   <div>
@@ -712,7 +712,7 @@ export default function StudentClassroom() {
 
               <Card>
                 <CardContent className="p-6 flex items-center gap-4">
-                  <div className="p-3 bg-yellow-500/20 text-yellow-400 rounded-2xl border border-yellow-500/30">
+                  <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
                     <Award className="w-6 h-6" />
                   </div>
                   <div>
@@ -748,7 +748,7 @@ export default function StudentClassroom() {
                               <p className="text-xs text-gray-300 mt-1">{activePlanView.learning_goal}</p>
                             </div>
                             <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
-                              activePlanView.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'
+                              activePlanView.status === 'completed' ? 'bg-neutral-500/20 text-neutral-300' : 'bg-neutral-500/20 text-neutral-300'
                             }`}>
                               {activePlanView.status}
                             </span>
@@ -780,7 +780,7 @@ export default function StudentClassroom() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-white/5">
                     <CardTitle className="text-lg flex items-center">
-                      <FileText className="w-5 h-5 mr-2 text-blue-400" /> Recent Classroom Materials
+                      <FileText className="w-5 h-5 mr-2 text-neutral-400" /> Recent Classroom Materials
                     </CardTitle>
                     <Button size="sm" variant="ghost" onClick={() => setActiveTab('materials')}>
                       View All ({materials.length})
@@ -816,7 +816,7 @@ export default function StudentClassroom() {
                 <Card>
                   <CardHeader className="pb-3 border-b border-white/5">
                     <CardTitle className="text-lg flex items-center">
-                      <BrainCircuit className="w-5 h-5 mr-2 text-purple-400" /> Required Skills & Gaps
+                      <BrainCircuit className="w-5 h-5 mr-2 text-neutral-400" /> Required Skills & Gaps
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4 space-y-4">
@@ -824,7 +824,7 @@ export default function StudentClassroom() {
                       <p className="text-xs font-semibold uppercase text-gray-400 mb-2">Subject Competencies</p>
                       <div className="flex flex-wrap gap-1.5">
                         {overview?.required_skills.map((skill, idx) => (
-                          <span key={idx} className="text-xs bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2.5 py-1 rounded-md">
+                          <span key={idx} className="text-xs bg-neutral-500/10 text-neutral-300 border border-neutral-500/20 px-2.5 py-1 rounded-md">
                             ✦ {skill}
                           </span>
                         ))}
@@ -1090,8 +1090,8 @@ export default function StudentClassroom() {
             )}
 
             {assessmentStep === 'result' && (
-              <Card className="text-center p-6 space-y-4 border-green-500/30 bg-green-500/5">
-                <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mx-auto">
+              <Card className="text-center p-6 space-y-4 border-neutral-500/30 bg-neutral-500/5">
+                <div className="w-16 h-16 rounded-full bg-neutral-500/20 text-neutral-400 flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-bold text-white">Assessment Complete!</h3>
@@ -1125,7 +1125,7 @@ export default function StudentClassroom() {
                   <CardContent className="pt-4">
                     <form onSubmit={handleGeneratePlanSubmit} className="space-y-4">
                       {generateError && (
-                        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg">
+                        <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-xs rounded-lg">
                           {generateError}
                         </div>
                       )}
@@ -1192,7 +1192,7 @@ export default function StudentClassroom() {
                 <Card>
                   <CardHeader className="pb-3 border-b border-white/5">
                     <CardTitle className="text-base flex items-center">
-                      <BookOpen className="w-4 h-4 mr-2 text-blue-400" /> Saved Plans ({learningPlans.length})
+                      <BookOpen className="w-4 h-4 mr-2 text-neutral-400" /> Saved Plans ({learningPlans.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4 space-y-2">
@@ -1230,7 +1230,7 @@ export default function StudentClassroom() {
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-primary uppercase">{activePlanView.subject}</span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                            activePlanView.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'
+                            activePlanView.status === 'completed' ? 'bg-neutral-500/20 text-neutral-300' : 'bg-neutral-500/20 text-neutral-300'
                           }`}>
                             {activePlanView.status}
                           </span>
@@ -1239,7 +1239,7 @@ export default function StudentClassroom() {
                       </div>
                       {activePlanView.status !== 'completed' && (
                         <Button size="sm" onClick={handleStartVerification} className="gap-1.5">
-                          <Award className="w-4 h-4 text-yellow-300" />
+                          <Award className="w-4 h-4 text-neutral-300" />
                           Verify Path (5-MCQ)
                         </Button>
                       )}
@@ -1263,13 +1263,13 @@ export default function StudentClassroom() {
                                   key={task.id}
                                   className={`p-3.5 rounded-xl border flex items-center justify-between transition-colors ${
                                     task.is_completed
-                                      ? 'bg-green-500/10 border-green-500/20'
+                                      ? 'bg-neutral-500/10 border-neutral-500/20'
                                       : 'bg-surface-light border-white/5'
                                   }`}
                                 >
                                   <div className="flex items-center gap-3">
                                     {task.is_completed ? (
-                                      <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+                                      <CheckCircle2 className="w-5 h-5 text-neutral-400 shrink-0" />
                                     ) : (
                                       <div className="w-5 h-5 rounded-full border-2 border-gray-500 shrink-0" />
                                     )}
@@ -1320,17 +1320,17 @@ export default function StudentClassroom() {
         {activeTab === 'progress' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-green-500/20 to-transparent border-green-500/30">
+              <Card className="bg-gradient-to-br from-neutral-500/20 to-transparent border-neutral-500/30">
                 <CardContent className="p-6">
-                  <TrendingUp className="w-8 h-8 text-green-400 mb-2" />
+                  <TrendingUp className="w-8 h-8 text-neutral-400 mb-2" />
                   <p className="text-xs font-medium text-gray-400 uppercase">Overall Progress</p>
                   <p className="text-3xl font-bold text-white mt-1">{progressData?.overall_progress_percent ?? 0}%</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-blue-500/20 to-transparent border-blue-500/30">
+              <Card className="bg-gradient-to-br from-neutral-500/20 to-transparent border-neutral-500/30">
                 <CardContent className="p-6">
-                  <CheckCircle2 className="w-8 h-8 text-blue-400 mb-2" />
+                  <CheckCircle2 className="w-8 h-8 text-neutral-400 mb-2" />
                   <p className="text-xs font-medium text-gray-400 uppercase">Tasks Completed</p>
                   <p className="text-3xl font-bold text-white mt-1">
                     {progressData?.completed_tasks ?? 0}/{progressData?.total_tasks ?? 0}
@@ -1338,17 +1338,17 @@ export default function StudentClassroom() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-500/20 to-transparent border-purple-500/30">
+              <Card className="bg-gradient-to-br from-neutral-500/20 to-transparent border-neutral-500/30">
                 <CardContent className="p-6">
-                  <Award className="w-8 h-8 text-purple-400 mb-2" />
+                  <Award className="w-8 h-8 text-neutral-400 mb-2" />
                   <p className="text-xs font-medium text-gray-400 uppercase">Plans Mastered</p>
                   <p className="text-3xl font-bold text-white mt-1">{progressData?.plans_completed ?? 0}</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-yellow-500/20 to-transparent border-yellow-500/30">
+              <Card className="bg-gradient-to-br from-neutral-500/20 to-transparent border-neutral-500/30">
                 <CardContent className="p-6">
-                  <Brain className="w-8 h-8 text-yellow-400 mb-2" />
+                  <Brain className="w-8 h-8 text-neutral-400 mb-2" />
                   <p className="text-xs font-medium text-gray-400 uppercase">Assessments Taken</p>
                   <p className="text-3xl font-bold text-white mt-1">{progressData?.assessments_completed_count ?? 0}</p>
                 </CardContent>
@@ -1377,11 +1377,11 @@ export default function StudentClassroom() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-gray-300">Average Competency Score</span>
-                    <span className="text-yellow-400">{progressData?.average_skill_score ?? 0}%</span>
+                    <span className="text-neutral-400">{progressData?.average_skill_score ?? 0}%</span>
                   </div>
                   <div className="w-full bg-black/40 h-3 rounded-full overflow-hidden">
                     <div
-                      className="bg-yellow-400 h-full rounded-full transition-all duration-1000"
+                      className="bg-neutral-400 h-full rounded-full transition-all duration-1000"
                       style={{ width: `${progressData?.average_skill_score ?? 0}%` }}
                     />
                   </div>
@@ -1437,7 +1437,7 @@ export default function StudentClassroom() {
                         {msg.sender === 'ai' && (
                           <div className="flex items-center gap-2 mb-1 text-xs">
                             {msg.rag_grounded ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-neutral-400 bg-neutral-500/10 border border-neutral-500/30 px-2 py-0.5 rounded-full">
                                 <FileText className="w-3 h-3" /> Grounded in Classroom Materials
                               </span>
                             ) : (
@@ -1589,7 +1589,7 @@ export default function StudentClassroom() {
 
             <div>
               <h2 className="text-2xl font-bold text-white flex items-center">
-                <Award className="w-6 h-6 mr-2 text-yellow-400" /> Path Verification Test
+                <Award className="w-6 h-6 mr-2 text-neutral-400" /> Path Verification Test
               </h2>
               <p className="text-xs text-gray-400 mt-1">
                 Answer 5 questions to verify mastery of {activePlanView?.topic}. Pass mark: 60% (3/5 correct).
@@ -1606,8 +1606,8 @@ export default function StudentClassroom() {
                 <div
                   className={`p-6 rounded-xl border text-center space-y-2 ${
                     verifyResult.passed
-                      ? 'bg-green-500/10 border-green-500/30 text-green-300'
-                      : 'bg-red-500/10 border-red-500/30 text-red-300'
+                      ? 'bg-neutral-500/10 border-neutral-500/30 text-neutral-300'
+                      : 'bg-neutral-500/10 border-neutral-500/30 text-neutral-300'
                   }`}
                 >
                   <p className="text-3xl font-bold">{verifyResult.score_percent}%</p>

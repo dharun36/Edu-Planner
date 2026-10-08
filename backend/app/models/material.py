@@ -22,6 +22,8 @@ class MaterialDocument(Base):
     chunk_count = mapped_column(Integer, nullable=False, default=0)
     created_at = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    college_id = mapped_column(ForeignKey('colleges.id', ondelete='CASCADE'), nullable=True, index=True)
+    subject_id = mapped_column(ForeignKey('subjects.id', ondelete='SET NULL'), nullable=True, index=True)
 
     chunks = relationship("MaterialChunk", back_populates="document", cascade="all, delete-orphan")
 
@@ -43,5 +45,6 @@ class MaterialChunk(Base):
     semester = mapped_column(String(50), nullable=False, index=True)
     regulation = mapped_column(String(100), nullable=False, index=True)
     created_at = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    college_ref_id = mapped_column(Integer, ForeignKey('colleges.id', ondelete='CASCADE'), nullable=True, index=True)
 
     document = relationship("MaterialDocument", back_populates="chunks")

@@ -11,14 +11,14 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You are an expert learning-needs analyst.
-Your job is to analyze a student's cognitive skill scores, specific topic skill gaps, learning goals, and context to produce a structured learning-needs analysis.
+Your job is to analyze a student's persistent learner model, domain academic skills, specific topic skill gaps, learning goals, and context to produce a structured learning-needs analysis.
 
 You MUST follow these rules:
-1. Identify skill gaps strictly based on the supplied skill scores and topic skill gaps.
-2. The five core cognitive skill categories are: Numerical Calculation, Abstract Thinking, Logical Reasoning, Association/Analogy, and Spatial Imagination.
-3. Distinguish clearly between strengths/known skills and weaknesses/missing skills.
-4. Respect any provided curriculum and RAG context; do NOT invent curriculum facts.
-5. Identify prerequisite knowledge gaps based on the requested topic and the student's weaknesses.
+1. Identify skill gaps strictly based on the supplied academic skills and topic prerequisite gaps.
+2. Consider both domain academic skills (e.g. Arrays, Recursion, Binary Trees) and cognitive dimensions.
+3. ADAPTIVE PRINCIPLE: Skills with high mastery (>=70%) do NOT require remediation. Target weak (<70%) or missing prerequisites first, followed by core target skills.
+4. Distinguish clearly between strengths/known skills and weaknesses/missing skills.
+5. Respect any provided curriculum and RAG context; do NOT invent curriculum facts.
 6. Recommend learning priorities and a high-level learning strategy.
 7. Return ONLY valid JSON matching the exact schema below. Do not include markdown code blocks. Do not produce the final lesson plan.
 
@@ -50,13 +50,22 @@ async def run_analyst(state: AgentState) -> Dict[str, Any]:
         f"Subject: {state['subject']}",
         f"Topic: {state['topic']}",
         f"Learning Goal: {state['learning_goal']}",
-        "Cognitive Skill Scores:",
+    ]
+
+    if state.get("academic_skills"):
+        prompt_lines.append("\nCurrent Academic Skill Mastery (Persistent Learner Model):")
+        for sk_name, sk_score in state["academic_skills"].items():
+            prompt_lines.append(f"- {sk_name}: {sk_score:.0f}%")
+
+    prompt_lines.extend([
+        "\nCognitive Skill Scores:",
         f"- Numerical Calculation: {state['skill_scores'].numerical_calculation}",
         f"- Abstract Thinking: {state['skill_scores'].abstract_thinking}",
         f"- Logical Reasoning: {state['skill_scores'].logical_reasoning}",
         f"- Association/Analogy: {state['skill_scores'].association_analogy}",
         f"- Spatial Imagination: {state['skill_scores'].spatial_imagination}"
-    ]
+    ])
+
 
     if state.get("skill_gaps"):
         gaps = state["skill_gaps"]

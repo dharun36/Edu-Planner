@@ -10,17 +10,32 @@ export const authApi = {
     return response.data;
   },
 
-  register: async (
-    email: string,
-    password: string,
+  registerStudent: async (
+    collegeCode: string,
+    studentIdentifier: string,
+    officialEmail: string,
     fullName: string,
-    role: string
+    password: string
   ): Promise<{ access_token: string; user: User }> => {
-    const response = await apiClient.post<{ access_token: string; user: User }>('/auth/register', {
-      email,
-      password,
+    const response = await apiClient.post<{ access_token: string; user: User }>('/auth/register/student', {
+      college_code: collegeCode,
+      student_identifier: studentIdentifier,
+      official_email: officialEmail,
       full_name: fullName,
-      role,
+      password,
+    });
+    return response.data;
+  },
+
+  acceptTeacherInvitation: async (
+    invitationToken: string,
+    fullName: string,
+    password: string
+  ): Promise<{ access_token: string; user: User }> => {
+    const response = await apiClient.post<{ access_token: string; user: User }>('/auth/invitations/accept', {
+      invitation_token: invitationToken,
+      full_name: fullName,
+      password,
     });
     return response.data;
   },

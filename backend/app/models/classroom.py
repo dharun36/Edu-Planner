@@ -22,6 +22,7 @@ class Classroom(Base):
     section: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    college_id: Mapped[int | None] = mapped_column(ForeignKey('colleges.id', ondelete='CASCADE'), nullable=True, index=True)
 
     teacher = relationship("User", foreign_keys=[teacher_id])
     members = relationship("ClassMember", back_populates="classroom", cascade="all, delete-orphan")

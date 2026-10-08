@@ -71,6 +71,12 @@ def _verify_classroom_access(class_id: int, current_user: User, db: Session) -> 
             detail="Classroom not found."
         )
 
+    if classroom.college_id and current_user.college_id and classroom.college_id != current_user.college_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot access a classroom from another college."
+        )
+
     if current_user.role == "teacher":
         if classroom.teacher_id != current_user.id:
             raise HTTPException(
@@ -103,12 +109,14 @@ async def create_class(
     Teacher creates a new class. Automatically generates a unique 6-character class code.
     """
     code = generate_class_code(db)
+    effective_college = payload.college.strip() if payload.college else current_user.college
     
     new_class = Classroom(
         teacher_id=current_user.id,
+        college_id=current_user.college_id,
         name=payload.name.strip(),
         code=code,
-        college=payload.college.strip() if payload.college else None,
+        college=effective_college,
         year=str(payload.year).strip() if payload.year is not None else None,
         semester=str(payload.semester).strip() if payload.semester is not None else None,
         regulation=payload.regulation.strip() if payload.regulation else None,
@@ -167,6 +175,12 @@ async def join_class(
             detail="This class is inactive."
         )
 
+    if classroom.college_id and current_user.college_id and classroom.college_id != current_user.college_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot join a classroom belonging to another college."
+        )
+
     existing_membership = db.execute(
         select(ClassMember).where(
             ClassMember.class_id == classroom.id,
@@ -179,6 +193,7 @@ async def join_class(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You have already joined this class."
         )
+
 
     member = ClassMember(
         class_id=classroom.id,

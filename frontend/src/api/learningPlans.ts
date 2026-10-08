@@ -8,6 +8,11 @@ export interface LearningTask {
   task_type: string;
   order_index: number;
   is_completed: boolean;
+  learning_objective?: string;
+  content?: string;
+  practice_activity?: string;
+  estimated_duration_minutes?: number;
+  difficulty?: string;
   created_at: string;
   updated_at: string;
 }
@@ -83,6 +88,15 @@ export const learningPlansApi = {
    */
   getPlanById: async (planId: number): Promise<LearningPlan> => {
     const response = await apiClient.get<LearningPlan>(`/learning-plans/${planId}`);
+    return response.data;
+  },
+
+  /**
+   * Get learning task details for workspace.
+   * Endpoint: GET /api/learning-plans/tasks/:taskId
+   */
+  getTaskById: async (taskId: number): Promise<LearningTask> => {
+    const response = await apiClient.get<LearningTask>(`/learning-plans/tasks/${taskId}`);
     return response.data;
   },
 

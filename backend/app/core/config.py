@@ -14,8 +14,12 @@ class Settings(BaseSettings):
     access_token_expiry_minutes: int = 1440
     backend_host: str = "127.0.0.1"
     backend_port: int = 8000
-    cors_origins: list[str] | str = Field(default_factory=lambda: ["http://localhost:5173"])
-    database_url: str | None = None
+    cors_origins: list[str] | str = Field(
+        default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
+    )
+    # SQLite keeps the local development app usable without a separate database.
+    # Deployments can override this with DATABASE_URL for PostgreSQL.
+    database_url: str | None = "sqlite:///./edu_planner.db"
     chroma_path: str = "./.chroma"
 
     # --- API Keys ---

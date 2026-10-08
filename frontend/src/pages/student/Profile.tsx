@@ -25,11 +25,11 @@ function CheckItem({ done, label }: { done: boolean; label: string }) {
   return (
     <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
       done
-        ? 'bg-green-500/10 border-green-500/20 text-green-300'
+        ? 'bg-neutral-500/10 border-neutral-500/20 text-neutral-300'
         : 'bg-white/5 border-white/10 text-gray-400'
     }`}>
       {done ? (
-        <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+        <CheckCircle2 className="w-5 h-5 text-neutral-400 shrink-0" />
       ) : (
         <div className="w-5 h-5 rounded-full border-2 border-gray-600 shrink-0" />
       )}
@@ -149,10 +149,10 @@ export default function ProfilePage() {
           <Card>
             <CardContent className="p-6 flex flex-col items-center text-center gap-4">
               <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-3xl font-bold text-white shadow-lg shadow-primary/30 border-4 border-primary/20">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-neutral-500 flex items-center justify-center text-3xl font-bold text-white shadow-lg shadow-primary/30 border-4 border-primary/20">
                   {avatarInitial}
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-background" />
+                <div className="absolute -bottom-1 -right-1 bg-neutral-500 w-5 h-5 rounded-full border-2 border-background" />
               </div>
               <div>
                 <p className="font-bold text-lg text-white">{user?.full_name}</p>
@@ -185,7 +185,7 @@ export default function ProfilePage() {
                     <circle
                       cx="32" cy="32" r="26"
                       fill="none"
-                      stroke="rgb(99,102,241)"
+                      stroke="rgb(115,115,115)"
                       strokeWidth="8"
                       strokeDasharray={`${2 * Math.PI * 26}`}
                       strokeDashoffset={`${2 * Math.PI * 26 * (1 - completionPercent / 100)}`}
@@ -319,13 +319,13 @@ export default function ProfilePage() {
 
           {/* Save feedback + button */}
           {saveSuccess && (
-            <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-300 animate-fade-in">
+            <div className="flex items-center gap-3 p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-300 animate-fade-in">
               <CheckCircle2 className="w-5 h-5 shrink-0" />
               <span className="text-sm font-medium">Profile saved successfully!</span>
             </div>
           )}
           {saveError && (
-            <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300">
+            <div className="flex items-center gap-3 p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-300">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span className="text-sm">{saveError}</span>
             </div>

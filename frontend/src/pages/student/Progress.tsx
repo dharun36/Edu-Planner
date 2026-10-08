@@ -42,7 +42,7 @@ export default function Progress() {
       </div>
 
       {error && (
-        <div className="flex items-center p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
+        <div className="flex items-center p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-400">
           <AlertCircle className="w-5 h-5 mr-3 shrink-0" />
           {error}
         </div>
@@ -50,33 +50,33 @@ export default function Progress() {
 
       {/* ── Stats Grid ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-orange-500/20 to-transparent border-orange-500/30">
+        <Card className="bg-gradient-to-br from-neutral-500/20 to-transparent border-neutral-500/30">
           <CardContent className="p-6">
-            <TrendingUp className="w-8 h-8 text-orange-400 mb-4" />
+            <TrendingUp className="w-8 h-8 text-neutral-400 mb-4" />
             <p className="text-sm font-medium text-gray-400">Current Streak</p>
             <p className="text-3xl font-bold text-white mt-1">{summary?.streak_days ?? 0} Days</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-500/20 to-transparent border-blue-500/30">
+        <Card className="bg-gradient-to-br from-neutral-500/20 to-transparent border-neutral-500/30">
           <CardContent className="p-6">
-            <CheckCircle className="w-8 h-8 text-blue-400 mb-4" />
+            <CheckCircle className="w-8 h-8 text-neutral-400 mb-4" />
             <p className="text-sm font-medium text-gray-400">Plans Completed</p>
             <p className="text-3xl font-bold text-white mt-1">{summary?.plans_completed ?? 0}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500/20 to-transparent border-purple-500/30">
+        <Card className="bg-gradient-to-br from-neutral-500/20 to-transparent border-neutral-500/30">
           <CardContent className="p-6">
-            <Award className="w-8 h-8 text-purple-400 mb-4" />
+            <Award className="w-8 h-8 text-neutral-400 mb-4" />
             <p className="text-sm font-medium text-gray-400">Skills Mastered</p>
             <p className="text-3xl font-bold text-white mt-1">{summary?.skills_mastered ?? 0}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500/20 to-transparent border-green-500/30">
+        <Card className="bg-gradient-to-br from-neutral-500/20 to-transparent border-neutral-500/30">
           <CardContent className="p-6">
-            <Calendar className="w-8 h-8 text-green-400 mb-4" />
+            <Calendar className="w-8 h-8 text-neutral-400 mb-4" />
             <p className="text-sm font-medium text-gray-400">Tasks Completed</p>
             <p className="text-3xl font-bold text-white mt-1">
               {summary ? `${summary.completed_tasks}/${summary.total_tasks}` : '0/0'}
@@ -98,9 +98,9 @@ export default function Progress() {
                   <div key={item.id || idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white/20 bg-surface text-primary shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
                       {item.type === 'plan_completed' ? (
-                        <CheckCircle className="w-5 h-5 text-green-400" />
+                        <CheckCircle className="w-5 h-5 text-neutral-400" />
                       ) : item.type === 'skill_mastered' ? (
-                        <Award className="w-5 h-5 text-yellow-400" />
+                        <Award className="w-5 h-5 text-neutral-400" />
                       ) : (
                         <Sparkles className="w-5 h-5 text-primary" />
                       )}
@@ -138,12 +138,12 @@ export default function Progress() {
 
             <div className="p-4 bg-white/5 rounded-xl border border-white/10">
               <p className="text-xs text-gray-400">RAG Documents Uploaded</p>
-              <p className="text-3xl font-bold text-purple-400 mt-1">{summary?.materials_count ?? 0}</p>
+              <p className="text-3xl font-bold text-neutral-400 mt-1">{summary?.materials_count ?? 0}</p>
             </div>
 
             <div className="p-4 bg-white/5 rounded-xl border border-white/10">
               <p className="text-xs text-gray-400">Task Completion Rate</p>
-              <p className="text-3xl font-bold text-green-400 mt-1">
+              <p className="text-3xl font-bold text-neutral-400 mt-1">
                 {summary && summary.total_tasks > 0
                   ? `${Math.round((summary.completed_tasks / summary.total_tasks) * 100)}%`
                   : '0%'}

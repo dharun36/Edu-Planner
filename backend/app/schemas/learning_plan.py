@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 
+
 class LearningTaskBase(BaseModel):
     title: str
     description: Optional[str] = None
@@ -9,12 +10,19 @@ class LearningTaskBase(BaseModel):
     order_index: int = 0
     is_completed: bool = False
 
+
 class LearningTaskResponse(LearningTaskBase):
     id: int
     module_id: int
+    # MVP: Learning workspace content fields
+    learning_objective: Optional[str] = None
+    content: Optional[str] = None
+    practice_activity: Optional[str] = None
+    estimated_duration_minutes: Optional[int] = None
+    difficulty: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -23,6 +31,7 @@ class LearningModuleBase(BaseModel):
     description: Optional[str] = None
     order_index: int = 0
     status: str = "pending"
+
 
 class LearningModuleResponse(LearningModuleBase):
     id: int
@@ -40,13 +49,14 @@ class LearningPlanBase(BaseModel):
     learning_goal: str
     status: str = "active"
 
+
 class LearningPlanResponse(LearningPlanBase):
     id: int
     user_id: int
     modules: List[LearningModuleResponse] = []
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -71,4 +81,5 @@ class VerificationResultResponse(BaseModel):
     correct_count: int
     total_count: int
     message: str
-
+    new_mastery: Optional[float] = None
+    skill_category: Optional[str] = None

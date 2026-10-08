@@ -56,7 +56,12 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return hmac.compare_digest(candidate_digest, expected_digest)
 
 
-def create_access_token(subject: str, role: str, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    subject: str,
+    role: str,
+    college_id: int | None = None,
+    expires_delta: timedelta | None = None,
+) -> str:
     settings = get_settings()
     issued_at = datetime.now(timezone.utc)
     expires_at = issued_at + (expires_delta or timedelta(minutes=settings.access_token_expiry_minutes))
@@ -65,6 +70,7 @@ def create_access_token(subject: str, role: str, expires_delta: timedelta | None
     payload: dict[str, Any] = {
         "sub": subject,
         "role": role,
+        "college_id": college_id,
         "iat": int(issued_at.timestamp()),
         "exp": int(expires_at.timestamp()),
     }

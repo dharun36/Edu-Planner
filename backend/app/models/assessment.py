@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class StudentSkill(Base):
@@ -13,7 +17,10 @@ class StudentSkill(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
     skill_category: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+    skill_id: Mapped[int | None] = mapped_column(ForeignKey('skills.id', ondelete='SET NULL'), nullable=True, index=True)
+    college_id: Mapped[int | None] = mapped_column(ForeignKey('colleges.id', ondelete='SET NULL'), nullable=True, index=True)
+    mastery_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
 
 class StudentSkillHistory(Base):
@@ -23,7 +30,9 @@ class StudentSkillHistory(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
     skill_category: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     score: Mapped[float] = mapped_column(Float, nullable=False)
-    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    skill_id: Mapped[int | None] = mapped_column(ForeignKey('skills.id', ondelete='SET NULL'), nullable=True, index=True)
+    evidence_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
 
 class DiagnosticQuestion(Base):
@@ -44,7 +53,7 @@ class DiagnosticAssessment(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 

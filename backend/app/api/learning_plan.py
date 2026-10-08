@@ -11,6 +11,12 @@ from app.ai.providers import get_llm_provider
 from app.core.config import get_settings
 from app.models.user import User
 from app.models.learning_plan import LearningPlan, LearningModule, LearningTask
+from app.models.evidence import LearningEvidence
+from app.services.learner_model_service import (
+    save_verification_questions,
+    get_latest_verification_for_plan,
+    record_verification_and_update_learner_model,
+)
 from app.dependencies.auth import require_role
 from app.schemas.learning_plan import (
     LearningPlanResponse,
@@ -98,6 +104,33 @@ async def get_learning_plan(
     return plan
 
 
+@router.get("/tasks/{task_id}", response_model=LearningTaskResponse)
+async def get_task(
+    task_id: int,
+    current_user: User = Depends(require_role("student")),
+    db: Session = Depends(get_db)
+):
+    """
+    Get full learning workspace data for a specific task.
+    Returns title, learning_objective, content (explanation), and practice_activity.
+    """
+    task = db.execute(
+        select(LearningTask)
+        .join(LearningModule, LearningTask.module_id == LearningModule.id)
+        .join(LearningPlan, LearningModule.learning_plan_id == LearningPlan.id)
+        .where(LearningTask.id == task_id)
+        .where(LearningPlan.user_id == current_user.id)
+    ).scalars().first()
+
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found or not authorized."
+        )
+
+    return task
+
+
 @router.patch("/tasks/{task_id}/complete", response_model=LearningTaskResponse)
 async def complete_task(
     task_id: int,
@@ -115,22 +148,29 @@ async def complete_task(
         .where(LearningTask.id == task_id)
         .where(LearningPlan.user_id == current_user.id)
     ).scalars().first()
-    
+
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found or not authorized."
         )
-        
+
     task.is_completed = True
+    evidence = LearningEvidence(
+        user_id=current_user.id,
+        college_id=None,
+        task_id=task.id,
+        evidence_type="task_completion",
+        score=100.0,
+        notes=f"Completed learning task: {task.title}",
+    )
+    db.add(evidence)
     db.commit()
     db.refresh(task)
-    
+
     return task
 
 
-# Store generated verification tests in-memory per plan for verification evaluation
-_VERIFICATION_TESTS_CACHE = {}
 
 
 @router.get("/{plan_id}/verification-questions", response_model=List[VerificationQuestion])
@@ -275,7 +315,14 @@ Return ONLY valid JSON matching this exact schema, with no markdown code blocks 
             },
         ]
 
-    _VERIFICATION_TESTS_CACHE[plan_id] = {q["id"]: q["correct_answer"] for q in questions_data}
+    # Persist verification questions into DB
+    save_verification_questions(
+        db=db,
+        plan_id=plan.id,
+        user_id=current_user.id,
+        college_id=current_user.college_id,
+        questions=questions_data,
+    )
 
     return [
         VerificationQuestion(
@@ -295,7 +342,7 @@ async def submit_verification_test(
 ):
     """
     Submits the 5-MCQ verification test.
-    If score >= 60% (3/5), updates the learning plan status to 'completed'.
+    Deterministically updates the persistent learner model in PostgreSQL/SQLite.
     """
     plan = db.execute(
         select(LearningPlan)
@@ -309,30 +356,35 @@ async def submit_verification_test(
             detail="Learning plan not found."
         )
 
-    correct_answers = _VERIFICATION_TESTS_CACHE.get(plan_id, {})
-    
-    correct_count = 0
-    total_count = 5
+    verification = get_latest_verification_for_plan(db, plan_id)
+    if not verification:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No verification test found for this plan. Please generate questions first."
+        )
 
-    for ans in payload.answers:
-        expected = correct_answers.get(ans.question_id)
-        if expected and ans.selected_option == expected:
-            correct_count += 1
+    answers_payload = [
+        {"question_id": a.question_id, "selected_option": a.selected_option}
+        for a in payload.answers
+    ]
 
-    score_percent = (correct_count / total_count) * 100.0
-    passed = score_percent >= 60.0
-
-    if passed:
-        plan.status = "completed"
-        db.commit()
-        msg = "Congratulations! You passed the 5-MCQ verification test. Learning plan marked as COMPLETED! 🎉"
-    else:
-        msg = f"You scored {score_percent:.0f}%. You need at least 60% (3/5 correct) to verify completion. Please review the topics and try again!"
+    passed, score_percent, correct_count, total_count, msg, new_mastery, skill_cat = (
+        record_verification_and_update_learner_model(
+            db=db,
+            user=current_user,
+            plan=plan,
+            verification=verification,
+            answers_submitted=answers_payload,
+        )
+    )
 
     return VerificationResultResponse(
         passed=passed,
         score_percent=score_percent,
         correct_count=correct_count,
         total_count=total_count,
-        message=msg
+        message=msg,
+        new_mastery=new_mastery,
+        skill_category=skill_cat,
     )
+

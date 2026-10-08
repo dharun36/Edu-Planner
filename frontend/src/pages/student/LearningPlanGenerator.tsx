@@ -1,35 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { aiApi } from '../../api/ai';
+import { useAuth } from '../../components/auth/AuthProvider';
 import { LearningPlanRequest, LearningPlanResponse } from '../../types/learningPlan';
-import { Sparkles, BrainCircuit, Library, Loader2, ArrowRight, ShieldAlert, Target, BookOpen, Layers, CheckCircle2, TrendingUp, NotebookPen, Lightbulb, FileText, Award, AlertTriangle } from 'lucide-react';
+import {
+  Sparkles,
+  BrainCircuit,
+  Library,
+  Loader2,
+  ArrowRight,
+  ShieldAlert,
+  Target,
+  BookOpen,
+  Layers,
+  CheckCircle2,
+  TrendingUp,
+  NotebookPen,
+  Lightbulb,
+  FileText,
+  Award,
+  AlertTriangle,
+  School,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function LearningPlanGenerator() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState<LearningPlanRequest>({
     subject: '',
     topic: '',
     learning_goal: '',
-    college: '',
-    semester: '',
-    regulation: '',
-    year: ''
+    college: user?.college || '',
+    semester: user?.semester || '',
+    regulation: user?.regulation || '',
+    year: user?.year_of_study || '',
   });
-  
+
+  const [showOverrideFilters, setShowOverrideFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStateIndex, setLoadingStateIndex] = useState(0);
   const [error, setError] = useState('');
   const [plan, setPlan] = useState<LearningPlanResponse | null>(null);
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        college: prev.college || user.college || '',
+        semester: prev.semester || user.semester || '',
+        regulation: prev.regulation || user.regulation || '',
+        year: prev.year || user.year_of_study || '',
+      }));
+    }
+  }, [user]);
 
   const loadingMessages = [
-    "Retrieving learning materials from RAG vector store...",
-    "Analyzing your current skill tree & history...",
-    "Identifying missing & weak prerequisite skills...",
-    "Synthesizing personalized plan with AI agents...",
-    "Evaluating plan quality & grounding..."
+    'Retrieving institutional materials from college knowledge store...',
+    'Analyzing your persistent skill mastery and diagnostic gaps...',
+    'Checking prerequisite dependencies...',
+    'Synthesizing adaptive plan with AI agents (Analyst → Optimizer → Evaluator)...',
+    'Validating plan grounding & curriculum alignment...',
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,10 +76,10 @@ export default function LearningPlanGenerator() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+
     // Animate loading text progression
     const interval = setInterval(() => {
-      setLoadingStateIndex(prev => Math.min(prev + 1, loadingMessages.length - 1));
+      setLoadingStateIndex((prev) => Math.min(prev + 1, loadingMessages.length - 1));
     }, 2000);
 
     try {
@@ -66,7 +102,9 @@ export default function LearningPlanGenerator() {
             <h1 className="text-3xl font-bold">{formData.topic}</h1>
             <p className="text-gray-400">RAG-Grounded Personalized Learning Plan</p>
           </div>
-          <Button onClick={() => setPlan(null)} variant="outline">Create Another</Button>
+          <Button onClick={() => setPlan(null)} variant="outline">
+            Create Another
+          </Button>
         </div>
 
         {/* Status Metrics */}
@@ -77,15 +115,15 @@ export default function LearningPlanGenerator() {
               <p className="text-xl font-bold text-white capitalize">{plan.status.toLowerCase()}</p>
             </CardContent>
           </Card>
-          <Card className="bg-purple-500/10 border-purple-500/20">
+          <Card className="bg-neutral-500/10 border-neutral-500/20">
             <CardContent className="p-4">
-              <p className="text-sm font-medium text-purple-400">Evaluator Score</p>
+              <p className="text-sm font-medium text-neutral-400">Evaluator Score</p>
               <p className="text-xl font-bold text-white">{plan.score}/100</p>
             </CardContent>
           </Card>
-          <Card className="bg-green-500/10 border-green-500/20">
+          <Card className="bg-neutral-500/10 border-neutral-500/20">
             <CardContent className="p-4">
-              <p className="text-sm font-medium text-green-400">RAG Chunks Retrieved</p>
+              <p className="text-sm font-medium text-neutral-400">RAG Chunks Retrieved</p>
               <p className="text-xl font-bold text-white">{plan.rag_chunks_retrieved ?? 0} Chunks</p>
             </CardContent>
           </Card>
@@ -93,20 +131,25 @@ export default function LearningPlanGenerator() {
 
         {/* Skill Profile & Gap Analysis */}
         {plan.skill_gaps && (
-          <Card className="border-blue-500/20 bg-blue-500/5">
+          <Card className="border-neutral-500/20 bg-neutral-500/5">
             <CardHeader className="pb-2">
-              <CardTitle className="text-blue-400 flex items-center text-lg">
+              <CardTitle className="text-neutral-400 flex items-center text-lg">
                 <BrainCircuit className="w-5 h-5 mr-2" /> Skill Tree & Gap Analysis
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-2">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="text-xs font-semibold uppercase text-green-400 mb-2">Mastered / Known Skills</h4>
+                  <h4 className="text-xs font-semibold uppercase text-neutral-400 mb-2">
+                    Mastered / Known Skills
+                  </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {plan.skill_gaps.known_skills && plan.skill_gaps.known_skills.length > 0 ? (
                       plan.skill_gaps.known_skills.map((skill, i) => (
-                        <span key={i} className="text-xs bg-green-500/10 text-green-300 border border-green-500/20 px-2.5 py-1 rounded-md">
+                        <span
+                          key={i}
+                          className="text-xs bg-neutral-500/10 text-neutral-300 border border-neutral-500/20 px-2.5 py-1 rounded-md"
+                        >
                           ✓ {skill}
                         </span>
                       ))
@@ -117,11 +160,20 @@ export default function LearningPlanGenerator() {
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-semibold uppercase text-orange-400 mb-2">Target Weak / Missing Skills</h4>
+                  <h4 className="text-xs font-semibold uppercase text-neutral-400 mb-2">
+                    Target Weak / Missing Skills
+                  </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {[...(plan.skill_gaps.weak_skills || []), ...(plan.skill_gaps.missing_skills || [])].length > 0 ? (
-                      [...(plan.skill_gaps.weak_skills || []), ...(plan.skill_gaps.missing_skills || [])].map((skill, i) => (
-                        <span key={i} className="text-xs bg-orange-500/10 text-orange-300 border border-orange-500/20 px-2.5 py-1 rounded-md">
+                    {[...(plan.skill_gaps.weak_skills || []), ...(plan.skill_gaps.missing_skills || [])]
+                      .length > 0 ? (
+                      [
+                        ...(plan.skill_gaps.weak_skills || []),
+                        ...(plan.skill_gaps.missing_skills || []),
+                      ].map((skill, i) => (
+                        <span
+                          key={i}
+                          className="text-xs bg-neutral-500/10 text-neutral-300 border border-neutral-500/20 px-2.5 py-1 rounded-md"
+                        >
                           ⚠ {skill}
                         </span>
                       ))
@@ -137,18 +189,24 @@ export default function LearningPlanGenerator() {
 
         {/* RAG Status Notice */}
         {plan.rag_retrieval_status && (
-          <div className={`p-4 rounded-xl border text-sm flex items-start ${
-            plan.rag_chunks_retrieved && plan.rag_chunks_retrieved > 0 
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
-              : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-          }`}>
+          <div
+            className={`p-4 rounded-xl border text-sm flex items-start ${
+              plan.rag_chunks_retrieved && plan.rag_chunks_retrieved > 0
+                ? 'bg-neutral-500/10 border-neutral-500/30 text-neutral-300'
+                : 'bg-neutral-500/10 border-neutral-500/30 text-neutral-300'
+            }`}
+          >
             {plan.rag_chunks_retrieved && plan.rag_chunks_retrieved > 0 ? (
-              <FileText className="w-5 h-5 mr-3 shrink-0 text-emerald-400 mt-0.5" />
+              <FileText className="w-5 h-5 mr-3 shrink-0 text-neutral-400 mt-0.5" />
             ) : (
-              <AlertTriangle className="w-5 h-5 mr-3 shrink-0 text-amber-400 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 mr-3 shrink-0 text-neutral-400 mt-0.5" />
             )}
             <div>
-              <p className="font-semibold">{plan.rag_chunks_retrieved && plan.rag_chunks_retrieved > 0 ? "RAG Material Grounded" : "RAG Retrieval Notice"}</p>
+              <p className="font-semibold">
+                {plan.rag_chunks_retrieved && plan.rag_chunks_retrieved > 0
+                  ? 'RAG Material Grounded'
+                  : 'RAG Retrieval Notice'}
+              </p>
               <p className="text-xs mt-0.5 opacity-90">{plan.rag_retrieval_status}</p>
             </div>
           </div>
@@ -156,15 +214,17 @@ export default function LearningPlanGenerator() {
 
         {/* Evaluator Notes */}
         {plan.issues && plan.issues.length > 0 && (
-          <Card className="border-yellow-500/30 bg-yellow-500/5">
+          <Card className="border-neutral-500/30 bg-neutral-500/5">
             <CardHeader className="pb-2">
-              <CardTitle className="text-yellow-400 flex items-center text-lg">
+              <CardTitle className="text-neutral-400 flex items-center text-lg">
                 <ShieldAlert className="w-5 h-5 mr-2" /> Evaluator Feedback
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="list-disc pl-5 space-y-1 text-sm text-yellow-100/70">
-                {plan.issues.map((issue, i) => <li key={i}>{issue}</li>)}
+              <ul className="list-disc pl-5 space-y-1 text-sm text-neutral-100/70">
+                {plan.issues.map((issue, i) => (
+                  <li key={i}>{issue}</li>
+                ))}
               </ul>
             </CardContent>
           </Card>
@@ -180,7 +240,7 @@ export default function LearningPlanGenerator() {
             <CardContent className="pt-4 space-y-3">
               {plan.plan.learning_objectives.map((obj: string, i: number) => (
                 <div key={i} className="flex items-start">
-                  <CheckCircle2 className="w-5 h-5 mr-3 text-green-400 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 mr-3 text-neutral-400 shrink-0 mt-0.5" />
                   <p className="text-gray-300 text-sm leading-relaxed">{obj}</p>
                 </div>
               ))}
@@ -190,7 +250,7 @@ export default function LearningPlanGenerator() {
           <Card>
             <CardHeader className="pb-3 border-b border-white/5">
               <CardTitle className="text-lg flex items-center">
-                <Lightbulb className="w-5 h-5 mr-2 text-yellow-400" /> Personalization & Prerequisites
+                <Lightbulb className="w-5 h-5 mr-2 text-neutral-400" /> Personalization & Prerequisites
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
@@ -208,16 +268,19 @@ export default function LearningPlanGenerator() {
 
         {/* Expected Skills Gained */}
         {plan.plan.expected_skills && plan.plan.expected_skills.length > 0 && (
-          <Card className="border-purple-500/20 bg-purple-500/5">
+          <Card className="border-neutral-500/20 bg-neutral-500/5">
             <CardHeader className="pb-2">
-              <CardTitle className="text-purple-400 flex items-center text-lg">
+              <CardTitle className="text-neutral-400 flex items-center text-lg">
                 <Award className="w-5 h-5 mr-2" /> Expected Skills Gained After Completion
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-2">
               <div className="flex flex-wrap gap-2">
                 {plan.plan.expected_skills.map((skill: string, i: number) => (
-                  <span key={i} className="bg-purple-500/10 text-purple-300 border border-purple-500/30 px-3 py-1 rounded-lg text-sm font-medium">
+                  <span
+                    key={i}
+                    className="bg-neutral-500/10 text-neutral-300 border border-neutral-500/30 px-3 py-1 rounded-lg text-sm font-medium"
+                  >
                     ✦ {skill}
                   </span>
                 ))}
@@ -230,7 +293,7 @@ export default function LearningPlanGenerator() {
         <Card>
           <CardHeader className="pb-4 border-b border-white/5">
             <CardTitle className="text-xl flex items-center">
-              <Layers className="w-6 h-6 mr-2 text-blue-400" /> Personalized Learning Modules
+              <Layers className="w-6 h-6 mr-2 text-neutral-400" /> Personalized Learning Modules
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
@@ -251,12 +314,12 @@ export default function LearningPlanGenerator() {
             <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
               <div className="bg-surface-light p-4 rounded-xl border border-white/5">
                 <h4 className="font-semibold flex items-center text-gray-200 mb-3">
-                  <NotebookPen className="w-4 h-4 mr-2 text-purple-400" /> Practice Activities
+                  <NotebookPen className="w-4 h-4 mr-2 text-neutral-400" /> Practice Activities
                 </h4>
                 <ul className="space-y-2">
                   {plan.plan.practice_activities.map((practice: string, i: number) => (
                     <li key={i} className="text-sm text-gray-400 flex items-start">
-                      <span className="text-purple-400 mr-2">•</span> {practice}
+                      <span className="text-neutral-400 mr-2">•</span> {practice}
                     </li>
                   ))}
                 </ul>
@@ -265,13 +328,13 @@ export default function LearningPlanGenerator() {
               <div className="bg-surface-light p-4 rounded-xl border border-white/5 space-y-4">
                 <div>
                   <h4 className="font-semibold flex items-center text-gray-200 mb-1">
-                    <TrendingUp className="w-4 h-4 mr-2 text-orange-400" /> Difficulty Progression
+                    <TrendingUp className="w-4 h-4 mr-2 text-neutral-400" /> Difficulty Progression
                   </h4>
                   <p className="text-sm text-gray-400">{plan.plan.difficulty_progression}</p>
                 </div>
                 <div>
                   <h4 className="font-semibold flex items-center text-gray-200 mb-1">
-                    <BookOpen className="w-4 h-4 mr-2 text-green-400" /> Assessment Strategy
+                    <BookOpen className="w-4 h-4 mr-2 text-neutral-400" /> Assessment Strategy
                   </h4>
                   <p className="text-sm text-gray-400">{plan.plan.assessment_strategy}</p>
                 </div>
@@ -293,38 +356,127 @@ export default function LearningPlanGenerator() {
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight mb-2">Create Learning Plan</h1>
-        <p className="text-gray-400">Generate a personalized curriculum powered by RAG materials, your student skill tree, and multi-agent AI.</p>
+        <p className="text-gray-400">
+          Generate an adaptive curriculum grounded by college materials, your persistent skill profile, and multi-agent AI.
+        </p>
+      </div>
+
+      {/* Verified Academic Profile Badge */}
+      <div className="bg-surface/60 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+            <School className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-white">
+                {user?.college || 'Institutional Context Attached'}
+              </p>
+              <span className="text-[10px] bg-neutral-500/10 text-neutral-400 border border-neutral-500/20 px-2 py-0.5 rounded-full font-medium">
+                Verified
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {user?.department ? `${user.department} • ` : ''}
+              {formData.semester ? `Semester ${formData.semester} • ` : ''}
+              {formData.regulation ? `Reg ${formData.regulation}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowOverrideFilters(!showOverrideFilters)}
+          className="text-xs text-primary hover:text-neutral-400 font-medium flex items-center gap-1 self-end sm:self-center"
+        >
+          {showOverrideFilters ? 'Hide Curriculum Filters' : 'Curriculum Filters'}
+          {showOverrideFilters ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
       </div>
 
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && <div className="text-red-400 text-sm bg-red-400/10 p-4 rounded-xl border border-red-500/20">{error}</div>}
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center text-gray-200">
-                <Library className="w-5 h-5 mr-2 text-primary" /> RAG Filter Parameters
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="College" name="college" placeholder="Kongu Engineering College" value={formData.college} onChange={handleChange} required />
-                <Input label="Year" name="year" placeholder="4" value={formData.year} onChange={handleChange} required />
-                <Input label="Semester" name="semester" placeholder="7" value={formData.semester} onChange={handleChange} required />
-                <Input label="Regulation" name="regulation" placeholder="2022" value={formData.regulation} onChange={handleChange} required />
+            {error && (
+              <div className="text-neutral-400 text-sm bg-neutral-400/10 p-4 rounded-xl border border-neutral-500/20">
+                {error}
               </div>
-            </div>
+            )}
 
-            <hr className="border-white/10" />
+            {/* Optional RAG Curriculum Filters */}
+            {showOverrideFilters && (
+              <div className="p-4 bg-surface-light/50 border border-white/5 rounded-xl space-y-4">
+                <h3 className="text-sm font-semibold flex items-center text-gray-200">
+                  <Library className="w-4 h-4 mr-2 text-primary" /> Curricular Filtering Metadata
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    label="College"
+                    name="college"
+                    placeholder="e.g. Kongu Engineering College"
+                    value={formData.college}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Year of Study"
+                    name="year"
+                    placeholder="e.g. 3"
+                    value={formData.year}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Semester"
+                    name="semester"
+                    placeholder="e.g. 5"
+                    value={formData.semester}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Regulation"
+                    name="regulation"
+                    placeholder="e.g. 2022"
+                    value={formData.regulation}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center text-gray-200">
-                <BrainCircuit className="w-5 h-5 mr-2 text-purple-400" /> Learning Goal & Topic
+                <BrainCircuit className="w-5 h-5 mr-2 text-neutral-400" /> Learning Focus & Goal
               </h3>
-              <Input label="Subject" name="subject" placeholder="Web Development" value={formData.subject} onChange={handleChange} required />
-              <Input label="Topic" name="topic" placeholder="React Hooks" value={formData.topic} onChange={handleChange} required />
-              <Input label="Learning Goal" name="learning_goal" placeholder="Understand hooks, state, useEffect and custom hooks" value={formData.learning_goal} onChange={handleChange} required />
+              <Input
+                label="Course / Subject *"
+                name="subject"
+                placeholder="e.g. Data Structures & Algorithms, Web Development"
+                value={formData.subject}
+                onChange={handleChange}
+                required
+              />
+              <Input
+                label="Topic of Study *"
+                name="topic"
+                placeholder="e.g. Graph Algorithms, React Hooks & State"
+                value={formData.topic}
+                onChange={handleChange}
+                required
+              />
+              <Input
+                label="Specific Learning Goal *"
+                name="learning_goal"
+                placeholder="e.g. Master shortest path algorithms and Dijkstra implementation"
+                value={formData.learning_goal}
+                onChange={handleChange}
+                required
+              />
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base shadow-xl shadow-primary/20" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full h-12 text-base shadow-xl shadow-primary/20"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <div className="flex items-center">
                   <Loader2 className="w-5 h-5 mr-3 animate-spin text-white" />

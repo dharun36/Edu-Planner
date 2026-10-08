@@ -14,9 +14,16 @@ from app.services.material_indexing import file_content_hash, index_chunks, pars
 SUPPORTED_MATERIAL_SUFFIXES = {".txt", ".md", ".rst", ".pdf", ".docx"}
 
 
-def _document_scope_filters(college: str | None = None, semester: str | None = None, regulation: str | None = None):
+def _document_scope_filters(
+    college_id: int | None = None,
+    college: str | None = None,
+    semester: str | None = None,
+    regulation: str | None = None,
+):
     query = select(MaterialDocument)
-    if college is not None:
+    if college_id is not None:
+        query = query.where(MaterialDocument.college_id == college_id)
+    elif college is not None:
         query = query.where(MaterialDocument.college == college)
     if semester is not None:
         query = query.where(MaterialDocument.semester == semester)
@@ -25,17 +32,33 @@ def _document_scope_filters(college: str | None = None, semester: str | None = N
     return query
 
 
-async def list_material_documents(*, college: str | None = None, semester: str | None = None, regulation: str | None = None) -> list[MaterialDocumentRead]:
+async def list_material_documents(
+    *,
+    college_id: int | None = None,
+    college: str | None = None,
+    semester: str | None = None,
+    regulation: str | None = None,
+) -> list[MaterialDocumentRead]:
     session_factory = get_session_factory()
     if session_factory is None:
         return []
 
     with session_factory() as session:
-        documents = session.execute(_document_scope_filters(college, semester, regulation)).scalars().all()
+        documents = session.execute(
+            _document_scope_filters(college_id, college, semester, regulation)
+        ).scalars().all()
     return [MaterialDocumentRead.model_validate(document) for document in documents]
 
 
-async def upload_material_document(*, file: UploadFile, college: str, semester: str, regulation: str) -> MaterialDocumentRead:
+async def upload_material_document(
+    *,
+    file: UploadFile,
+    college: str,
+    semester: str,
+    regulation: str,
+    college_id: int | None = None,
+) -> MaterialDocumentRead:
+
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A file is required")
 
@@ -83,26 +106,36 @@ async def upload_material_document(*, file: UploadFile, college: str, semester: 
 
             document = MaterialDocument(
                 college=college,
+                college_id=college_id,
                 semester=semester,
                 regulation=regulation,
                 file_name=file.filename,
                 file_path=str(persistent_path),
                 mime_type=file.content_type,
                 content_hash=content_hash,
-                embedding_model="all-MiniLM-L6-v2",
+                embedding_model="local-text",
                 chunk_count=len(chunks),
             )
             session.add(document)
             session.flush()
 
-            ids = index_chunks(
-                chunks,
-                college=college,
-                semester=semester,
-                regulation=regulation,
-                document_id=document.id,
-                content_hash=content_hash,
-            )
+            embedding_model = "all-MiniLM-L6-v2"
+            try:
+                ids = index_chunks(
+                    chunks,
+                    college=college,
+                    semester=semester,
+                    regulation=regulation,
+                    document_id=document.id,
+                    content_hash=content_hash,
+                )
+            except RuntimeError:
+                # Keep local uploads usable when optional vector-indexing packages
+                # are not installed. The stored chunks remain available locally.
+                embedding_model = "local-text"
+                ids = [f"local:{content_hash}:{index}" for index in range(len(chunks))]
+
+            document.embedding_model = embedding_model
 
             for index, chunk in enumerate(chunks):
                 session.add(
@@ -113,10 +146,12 @@ async def upload_material_document(*, file: UploadFile, college: str, semester: 
                         page_number=chunk.page_number,
                         chroma_id=ids[index],
                         college=college,
+                        college_ref_id=college_id,
                         semester=semester,
                         regulation=regulation,
                     )
                 )
+
 
             session.commit()
             session.refresh(document)
@@ -139,7 +174,35 @@ async def search_material_documents(payload: MaterialSearchRequest) -> dict[str,
             limit=payload.limit,
         )
     except RuntimeError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        session_factory = get_session_factory()
+        if session_factory is None:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database is not configured") from exc
+
+        terms = payload.query.lower().split()
+        with session_factory() as session:
+            query = select(MaterialChunk).where(
+                MaterialChunk.college == payload.college,
+                MaterialChunk.semester == payload.semester,
+                MaterialChunk.regulation == payload.regulation,
+            )
+            chunks = session.execute(query).scalars().all()
+
+        ranked = sorted(
+            chunks,
+            key=lambda chunk: sum(term in chunk.content.lower() for term in terms),
+            reverse=True,
+        )[:payload.limit]
+        return {
+            "documents": [[chunk.content for chunk in ranked]],
+            "metadatas": [[{
+                "college": chunk.college,
+                "semester": chunk.semester,
+                "regulation": chunk.regulation,
+                "document_id": chunk.document_id,
+                "page_number": chunk.page_number,
+            } for chunk in ranked]],
+            "distances": [[0.0 for _ in ranked]],
+        }
 
 
 async def get_material_document_detail(material_id: int):
@@ -194,11 +257,11 @@ async def delete_material_document(material_id: int):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Material document not found")
 
         # Delete from chroma
-        from app.services.material_indexing import get_chroma_collection
         try:
+            from app.services.material_indexing import get_chroma_collection
             get_chroma_collection().delete(where={"document_id": material_id})
-        except Exception as e:
-            pass # ignore chroma deletion errors if any
+        except (ImportError, RuntimeError):
+            pass
 
         if document.file_path and Path(document.file_path).exists():
             Path(document.file_path).unlink()
@@ -206,4 +269,3 @@ async def delete_material_document(material_id: int):
         session.execute(delete(MaterialChunk).where(MaterialChunk.document_id == material_id))
         session.delete(document)
         session.commit()
-

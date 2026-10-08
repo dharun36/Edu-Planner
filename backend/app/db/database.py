@@ -42,6 +42,10 @@ _USER_PROFILE_COLUMNS: list[tuple[str, str]] = [
     ("college",        "VARCHAR(255)"),
     ("regulation",     "VARCHAR(50)"),
     ("semester",       "VARCHAR(20)"),
+    ("learning_subject", "VARCHAR(255)"),
+    ("learning_topic", "VARCHAR(255)"),
+    ("learning_goal",  "TEXT"),
+    ("onboarding_complete", "BOOLEAN DEFAULT 0"),
 ]
 
 
@@ -69,6 +73,55 @@ def _run_profile_migrations(engine: Engine) -> None:
                     conn.rollback()
                     logger.debug("Could not add column users.%s: %s", col_name, exc)
 
+_NEW_COLUMNS: list[tuple[str, str, str]] = [
+    ("users", "college_id", "INTEGER"),
+    ("users", "student_registry_id", "INTEGER"),
+    ("users", "learning_subject", "VARCHAR(255)"),
+    ("users", "learning_topic", "VARCHAR(255)"),
+    ("users", "learning_goal", "TEXT"),
+    ("users", "onboarding_complete", "BOOLEAN DEFAULT 0"),
+    ("departments", "college_id", "INTEGER"),
+    ("student_skills", "skill_id", "INTEGER"),
+    ("student_skills", "college_id", "INTEGER"),
+    ("student_skills", "mastery_level", "VARCHAR(50)"),
+    ("student_skill_history", "skill_id", "INTEGER"),
+    ("student_skill_history", "evidence_type", "VARCHAR(50)"),
+    ("material_documents", "college_id", "INTEGER"),
+    ("material_documents", "subject_id", "INTEGER"),
+    ("material_chunks", "college_ref_id", "INTEGER"),
+    ("classes", "college_id", "INTEGER"),
+    ("learning_tasks", "skill_id", "INTEGER"),
+    ("learning_tasks", "learning_objective", "TEXT"),
+    ("learning_tasks", "content", "TEXT"),
+    ("learning_tasks", "practice_activity", "TEXT"),
+    ("learning_tasks", "estimated_duration_minutes", "INTEGER"),
+    ("learning_tasks", "difficulty", "VARCHAR(50)"),
+    ("semesters", "program_id", "INTEGER"),
+]
+
+def _run_schema_migrations(engine: Engine) -> None:
+    """Add new schema columns that don't yet exist in the database."""
+    with engine.connect() as conn:
+        dialect_name = engine.dialect.name
+        if dialect_name == "sqlite":
+            for table_name, col_name, col_type in _NEW_COLUMNS:
+                res = conn.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+                existing_cols = {row[1] for row in res}
+                if col_name not in existing_cols:
+                    try:
+                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}"))
+                        conn.commit()
+                    except Exception as exc:
+                        conn.rollback()
+                        logger.debug("Could not add column %s.%s: %s", table_name, col_name, exc)
+        else:
+            for table_name, col_name, col_type in _NEW_COLUMNS:
+                try:
+                    conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                    conn.commit()
+                except Exception as exc:
+                    conn.rollback()
+                    logger.debug("Could not add column %s.%s: %s", table_name, col_name, exc)
 
 async def init_db() -> None:
     engine = get_engine()
@@ -83,11 +136,16 @@ async def init_db() -> None:
         from app.models import assessment  # noqa: F401
         from app.models import learning_plan  # noqa: F401
         from app.models import classroom      # noqa: F401
+        from app.models import college     # noqa: F401
+        from app.models import program     # noqa: F401
+        from app.models import skill       # noqa: F401
+        from app.models import evidence    # noqa: F401
 
         Base.metadata.create_all(bind=engine)
 
         # Run additive column migrations after create_all
         _run_profile_migrations(engine)
+        _run_schema_migrations(engine)
 
     try:
         await asyncio.to_thread(create_tables)

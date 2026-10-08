@@ -1,12 +1,14 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../components/auth/AuthProvider';
+import { UserRole } from '../types/auth';
 
 interface ProtectedRouteProps {
-  allowedRoles?: Array<'student' | 'teacher'>;
+  allowedRoles?: UserRole[];
+  requireAssessmentComplete?: boolean;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, requireAssessmentComplete }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
@@ -24,7 +26,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect to their respective dashboard if they try to access unauthorized role routes
-    return <Navigate to={`/${user.role}/dashboard`} replace />;
+    const rolePath = user.role.replace('_', '-');
+    return <Navigate to={`/${rolePath}/dashboard`} replace />;
+  }
+
+  if (requireAssessmentComplete && user.role === 'student' && !user.onboarding_complete) {
+    return <Navigate to="/student/assessment" replace />;
   }
 
   return <Outlet />;

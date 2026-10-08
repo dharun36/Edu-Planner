@@ -27,8 +27,10 @@ class Department(Base, TimestampMixin):
     name = mapped_column(String(255), nullable=False, index=True)
     description = mapped_column(Text, nullable=True)
     is_active = mapped_column(Boolean, default=True, nullable=False)
+    college_id = mapped_column(ForeignKey('colleges.id', ondelete='CASCADE'), nullable=True, index=True)
 
     semesters = relationship("Semester", back_populates="department", cascade="all, delete-orphan")
+    programs = relationship('Program', back_populates='department', cascade="all, delete-orphan")
 
 
 class Semester(Base, TimestampMixin):
@@ -37,11 +39,13 @@ class Semester(Base, TimestampMixin):
 
     id = mapped_column(Integer, primary_key=True, index=True)
     department_id = mapped_column(ForeignKey("departments.id", ondelete="CASCADE"), nullable=False, index=True)
+    program_id = mapped_column(ForeignKey('programs.id', ondelete='CASCADE'), nullable=True, index=True)
     number = mapped_column(Integer, nullable=False)
     name = mapped_column(String(255), nullable=True)
     description = mapped_column(Text, nullable=True)
 
     department = relationship("Department", back_populates="semesters")
+    program = relationship('Program', back_populates='semesters')
     subjects = relationship("Subject", back_populates="semester", cascade="all, delete-orphan")
 
 

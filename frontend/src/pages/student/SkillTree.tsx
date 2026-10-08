@@ -21,17 +21,17 @@ import {
 /* ── Skill-level configuration ──────────────────────────────────── */
 function getSkillConfig(score: number) {
   const pct = Math.round(score);
-  if (pct >= 80) return { level: 'Advanced',      color: 'purple', hex: '#a855f7' };
-  if (pct >= 50) return { level: 'Intermediate',  color: 'green',  hex: '#22c55e' };
-  if (pct >= 25) return { level: 'Developing',    color: 'yellow', hex: '#eab308' };
-  return          { level: 'Beginner',    color: 'blue',   hex: '#3b82f6' };
+  if (pct >= 80) return { level: 'Advanced',      color: 'dark', hex: '#171717' };
+  if (pct >= 50) return { level: 'Intermediate',  color: 'medium', hex: '#525252' };
+  if (pct >= 25) return { level: 'Developing',    color: 'light', hex: '#a3a3a3' };
+  return          { level: 'Beginner',    color: 'muted', hex: '#737373' };
 }
 
 const colorMap: Record<string, { text: string; bg: string; border: string; glow: string }> = {
-  purple: { text: 'text-purple-400', bg: 'bg-purple-500', border: 'border-purple-500/40', glow: 'shadow-purple-500/20' },
-  green:  { text: 'text-green-400',  bg: 'bg-green-500',  border: 'border-green-500/40',  glow: 'shadow-green-500/20'  },
-  yellow: { text: 'text-yellow-400', bg: 'bg-yellow-500', border: 'border-yellow-500/40', glow: 'shadow-yellow-500/20' },
-  blue:   { text: 'text-blue-400',   bg: 'bg-blue-500',   border: 'border-blue-500/40',   glow: 'shadow-blue-500/20'   },
+  dark:   { text: 'text-neutral-200', bg: 'bg-neutral-800', border: 'border-neutral-700', glow: 'shadow-black/20' },
+  medium: { text: 'text-neutral-300', bg: 'bg-neutral-600', border: 'border-neutral-500', glow: 'shadow-neutral-500/20' },
+  light:  { text: 'text-neutral-400', bg: 'bg-neutral-400', border: 'border-neutral-400', glow: 'shadow-neutral-400/20' },
+  muted:  { text: 'text-neutral-500', bg: 'bg-neutral-500', border: 'border-neutral-500', glow: 'shadow-neutral-500/20' },
 };
 
 const skillIcons: Record<string, React.ElementType> = {
@@ -223,9 +223,9 @@ export default function SkillTree() {
       </div>
 
       {addSuccessMsg && (
-        <div className="flex items-center justify-between p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-300">
+        <div className="flex items-center justify-between p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-300">
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-neutral-400 shrink-0" />
             <span>{addSuccessMsg}</span>
           </div>
           <Button size="sm" onClick={() => navigate('/student/assessment')}>
@@ -249,8 +249,8 @@ export default function SkillTree() {
           </Card>
           <Card>
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-2.5 bg-green-500/20 rounded-xl border border-green-500/30">
-                <Network className="w-5 h-5 text-green-400" />
+              <div className="p-2.5 bg-neutral-500/20 rounded-xl border border-neutral-500/30">
+                <Network className="w-5 h-5 text-neutral-400" />
               </div>
               <div>
                 <p className="text-xs text-gray-400 font-medium">Active Skills</p>
@@ -260,8 +260,8 @@ export default function SkillTree() {
           </Card>
           <Card>
             <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-2.5 bg-purple-500/20 rounded-xl border border-purple-500/30">
-                <BrainCircuit className="w-5 h-5 text-purple-400" />
+              <div className="p-2.5 bg-neutral-500/20 rounded-xl border border-neutral-500/30">
+                <BrainCircuit className="w-5 h-5 text-neutral-400" />
               </div>
               <div>
                 <p className="text-xs text-gray-400 font-medium">Top Strength</p>
@@ -374,8 +374,8 @@ export default function SkillTree() {
           <div className="w-full max-w-md bg-surface border border-white/10 rounded-2xl p-6 space-y-6 shadow-2xl">
             <div className="flex justify-between items-center border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/20 rounded-xl border border-purple-500/30">
-                  <Edit3 className="w-5 h-5 text-purple-400" />
+                <div className="p-2 bg-neutral-500/20 rounded-xl border border-neutral-500/30">
+                  <Edit3 className="w-5 h-5 text-neutral-400" />
                 </div>
                 <div>
                   <h2 className="font-bold text-lg text-white">Update Skill Level</h2>

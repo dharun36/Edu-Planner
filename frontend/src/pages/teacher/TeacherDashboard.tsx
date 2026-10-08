@@ -216,7 +216,7 @@ export default function TeacherDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-blue-500/20 text-blue-400 rounded-2xl border border-blue-500/30">
+            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
               <Users className="w-6 h-6" />
             </div>
             <div>
@@ -228,7 +228,7 @@ export default function TeacherDashboard() {
         
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-purple-500/20 text-purple-400 rounded-2xl border border-purple-500/30">
+            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
@@ -240,7 +240,7 @@ export default function TeacherDashboard() {
         
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-green-500/20 text-green-400 rounded-2xl border border-green-500/30">
+            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
@@ -252,7 +252,7 @@ export default function TeacherDashboard() {
         
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-orange-500/20 text-orange-400 rounded-2xl border border-orange-500/30">
+            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
@@ -315,7 +315,7 @@ export default function TeacherDashboard() {
                       >
                         {copiedCode === cls.code ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-green-400" /> Copied
+                            <Check className="w-3.5 h-3.5 text-neutral-400" /> Copied
                           </>
                         ) : (
                           <>
@@ -403,11 +403,11 @@ export default function TeacherDashboard() {
               {needingAttention.length > 0 ? (
                 <div className="space-y-4">
                   {needingAttention.map((student) => (
-                    <div key={student.user.id} className="flex gap-4 items-start p-3 bg-red-500/5 rounded-xl border border-red-500/10">
-                      <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                    <div key={student.user.id} className="flex gap-4 items-start p-3 bg-neutral-500/5 rounded-xl border border-neutral-500/10">
+                      <AlertCircle className="w-5 h-5 text-neutral-400 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-gray-200">{student.user.full_name}</p>
-                        <p className="text-xs text-red-400/80">
+                        <p className="text-xs text-neutral-400/80">
                           {student.skills_assessed === 0 ? 'Assessment not completed' : `Low average score (${student.average_score}%)`}
                         </p>
                       </div>
@@ -441,16 +441,16 @@ export default function TeacherDashboard() {
             </div>
 
             {createError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl">
+              <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm rounded-xl">
                 {createError}
               </div>
             )}
 
             {createdClassCode ? (
               <div className="space-y-4 py-4 text-center">
-                <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl text-green-300">
+                <div className="p-4 bg-neutral-500/10 border border-neutral-500/30 rounded-xl text-neutral-300">
                   <p className="font-semibold text-sm">Class Created Successfully!</p>
-                  <p className="text-xs text-green-400/80 mt-1">Share this code with your students to let them join.</p>
+                  <p className="text-xs text-neutral-400/80 mt-1">Share this code with your students to let them join.</p>
                 </div>
 
                 <div className="p-6 bg-black/60 rounded-xl border border-primary/30 inline-block w-full">
@@ -464,7 +464,7 @@ export default function TeacherDashboard() {
                 >
                   {copiedCode === createdClassCode ? (
                     <>
-                      <Check className="w-4 h-4 text-green-400" /> Copied Code to Clipboard!
+                      <Check className="w-4 h-4 text-neutral-400" /> Copied Code to Clipboard!
                     </>
                   ) : (
                     <>
@@ -640,16 +640,16 @@ export default function TeacherDashboard() {
             </div>
 
             {uploadError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl">
+              <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm rounded-xl">
                 {uploadError}
               </div>
             )}
 
             {uploadSuccess ? (
-              <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl text-green-300 text-center">
-                <Check className="w-8 h-8 mx-auto mb-2 text-green-400" />
+              <div className="p-4 bg-neutral-500/10 border border-neutral-500/30 rounded-xl text-neutral-300 text-center">
+                <Check className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
                 <p className="font-semibold text-sm">Material Uploaded Successfully!</p>
-                <p className="text-xs text-green-400/80 mt-1">The document is now available to students and indexed for Ask AI.</p>
+                <p className="text-xs text-neutral-400/80 mt-1">The document is now available to students and indexed for Ask AI.</p>
               </div>
             ) : (
               <form onSubmit={handleUploadSubmit} className="space-y-4">
@@ -690,9 +690,9 @@ export default function TeacherDashboard() {
       {/* Delete Class Confirmation Modal */}
       {classToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-surface border border-red-500/30 rounded-2xl max-w-sm w-full p-6 space-y-6 shadow-2xl relative text-center">
-            <div className="mx-auto w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20 mb-2">
-              <AlertCircle className="w-6 h-6 text-red-500" />
+          <div className="bg-surface border border-neutral-500/30 rounded-2xl max-w-sm w-full p-6 space-y-6 shadow-2xl relative text-center">
+            <div className="mx-auto w-12 h-12 bg-neutral-500/10 rounded-full flex items-center justify-center border border-neutral-500/20 mb-2">
+              <AlertCircle className="w-6 h-6 text-neutral-500" />
             </div>
             
             <div>
@@ -704,7 +704,7 @@ export default function TeacherDashboard() {
             </div>
 
             {deleteError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl">
+              <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm rounded-xl">
                 {deleteError}
               </div>
             )}

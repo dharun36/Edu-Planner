@@ -1,16 +1,15 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DiagnosticQuestionPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     text: str
     options: list[str]
     skill_category: str
     difficulty: str
-
-    class Config:
-        from_attributes = True
 
 
 class AssessmentStartResponse(BaseModel):
@@ -27,12 +26,12 @@ class AssessmentSubmitRequest(BaseModel):
 
 
 class SkillScore(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
     skill_category: str
     score: float
     last_updated: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class AddCustomSkillRequest(BaseModel):

@@ -69,7 +69,7 @@ export default function StudentViewer() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <Network className="w-4 h-4 text-purple-400" />
+                        <Network className="w-4 h-4 text-neutral-400" />
                         <span>{s.skills_assessed} Assessed</span>
                       </div>
                     </td>
@@ -77,7 +77,7 @@ export default function StudentViewer() {
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${s.average_score >= 80 ? 'bg-green-500' : s.average_score >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} 
+                            className={`h-full ${s.average_score >= 80 ? 'bg-neutral-500' : s.average_score >= 60 ? 'bg-neutral-500' : 'bg-neutral-500'}`} 
                             style={{ width: `${s.average_score}%` }} 
                           />
                         </div>

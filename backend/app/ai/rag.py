@@ -1,12 +1,16 @@
 # backend/app/ai/rag.py
 import logging
 from typing import Optional
-import chromadb
+
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 def get_chroma_client():
+    try:
+        import chromadb
+    except ImportError as exc:
+        raise RuntimeError("Install chromadb to use RAG retrieval") from exc
     settings = get_settings()
     return chromadb.PersistentClient(path=settings.chroma_path)
 

@@ -1,17 +1,26 @@
+export type UserRole = 'student' | 'teacher' | 'college_admin' | 'platform_admin';
+
 export interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'student' | 'teacher';
+  role: UserRole;
   is_active: boolean;
-  // Extended profile fields
+  // Basic profile fields
   phone?: string | null;
   department?: string | null;
   year_of_study?: string | null;
   bio?: string | null;
   college?: string | null;
+  college_id?: number | null;
+  student_registry_id?: number | null;
   regulation?: string | null;
   semester?: string | null;
+  // MVP: Persistent learning goal
+  learning_subject?: string | null;
+  learning_topic?: string | null;
+  learning_goal?: string | null;
+  onboarding_complete?: boolean;
 }
 
 export interface Token {
@@ -28,4 +37,9 @@ export interface UpdateProfileRequest {
   college?: string;
   regulation?: string;
   semester?: string;
+  // MVP: Learning goal fields
+  learning_subject?: string;
+  learning_topic?: string;
+  learning_goal?: string;
+  onboarding_complete?: boolean;
 }

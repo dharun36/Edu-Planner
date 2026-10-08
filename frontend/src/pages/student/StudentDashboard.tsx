@@ -201,7 +201,7 @@ export default function StudentDashboard() {
     <div className="space-y-6">
       {/* Profile Completion Nudge Banner */}
       {!bannerDismissed && profileCompletion < 100 && (
-        <div className="relative p-4 rounded-xl bg-gradient-to-r from-primary/20 via-purple-500/20 to-blue-500/20 border border-primary/30 flex items-center justify-between gap-4">
+        <div className="relative p-4 rounded-xl bg-gradient-to-r from-primary/20 via-neutral-500/20 to-neutral-500/20 border border-primary/30 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/20 text-primary rounded-xl shrink-0">
               <UserCircle2 className="w-6 h-6" />
@@ -233,7 +233,7 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-orange-500/20 text-orange-400 rounded-2xl border border-orange-500/30">
+            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
               <Flame className="w-6 h-6" />
             </div>
             <div>
@@ -245,7 +245,7 @@ export default function StudentDashboard() {
 
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-blue-500/20 text-blue-400 rounded-2xl border border-blue-500/30">
+            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
@@ -257,7 +257,7 @@ export default function StudentDashboard() {
 
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-purple-500/20 text-purple-400 rounded-2xl border border-purple-500/30">
+            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
@@ -271,7 +271,7 @@ export default function StudentDashboard() {
 
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-yellow-500/20 text-yellow-400 rounded-2xl border border-yellow-500/30">
+            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
               <Award className="w-6 h-6" />
             </div>
             <div>
@@ -345,7 +345,7 @@ export default function StudentDashboard() {
                     </span>
                     <button
                       onClick={(e) => handleLeaveClass(e, cls.id, cls.name)}
-                      className="text-xs text-gray-400 hover:text-red-400 flex items-center gap-1 transition-colors z-10"
+                      className="text-xs text-gray-400 hover:text-neutral-400 flex items-center gap-1 transition-colors z-10"
                     >
                       <LogOut className="w-3 h-3" /> Leave
                     </button>
@@ -368,8 +368,12 @@ export default function StudentDashboard() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Current Learning Plan</CardTitle>
               {activePlan && activePlan.status !== 'completed' && (
-                <Button size="sm" onClick={handleStartVerification} className="gap-2">
-                  <Award className="w-4 h-4 text-yellow-300" />
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/student/verify/${activePlan.id}`)}
+                  className="gap-2 shadow-lg shadow-primary/20"
+                >
+                  <Award className="w-4 h-4 text-neutral-300" />
                   Verify Path (5-MCQ Test)
                 </Button>
               )}
@@ -381,7 +385,7 @@ export default function StudentDashboard() {
                   <span className="ml-3 text-gray-400">Loading plan from database...</span>
                 </div>
               ) : error ? (
-                <div className="flex items-center p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
+                <div className="flex items-center p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-400">
                   <AlertCircle className="w-5 h-5 mr-3 shrink-0" />
                   {error}
                 </div>
@@ -396,8 +400,8 @@ export default function StudentDashboard() {
                 <div className="space-y-6">
                   <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 relative">
                     {activePlan.status === 'completed' && (
-                      <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 bg-green-500/20 text-green-300 border border-green-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
-                        <Award className="w-4 h-4 text-yellow-300" />
+                      <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 bg-neutral-500/20 text-neutral-300 border border-neutral-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
+                        <Award className="w-4 h-4 text-neutral-300" />
                         Learning Path Verified & Completed
                       </div>
                     )}
@@ -424,13 +428,13 @@ export default function StudentDashboard() {
                               key={task.id}
                               className={`p-4 flex items-center justify-between rounded-lg border ${
                                 task.is_completed
-                                  ? 'bg-green-500/10 border-green-500/20'
+                                  ? 'bg-neutral-500/10 border-neutral-500/20'
                                   : 'bg-white/5 border-white/10'
                               } transition-colors`}
                             >
                               <div className="flex items-center gap-3">
                                 {task.is_completed ? (
-                                  <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+                                  <CheckCircle2 className="w-5 h-5 text-neutral-400 shrink-0" />
                                 ) : (
                                   <div className="w-5 h-5 rounded-full border-2 border-gray-500 shrink-0" />
                                 )}
@@ -441,20 +445,35 @@ export default function StudentDashboard() {
                                   <p className="text-xs text-gray-500 capitalize">{task.task_type}</p>
                                 </div>
                               </div>
-                              {!task.is_completed && (
+                              <div className="flex items-center gap-2">
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  disabled={completingTaskId === task.id}
-                                  onClick={() => handleCompleteTask(task.id)}
+                                  onClick={() => navigate(`/student/learn/${task.id}`)}
+                                  className="text-xs gap-1.5"
                                 >
-                                  {completingTaskId === task.id ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  ) : (
-                                    'Complete'
-                                  )}
+                                  <BookOpen className="w-3.5 h-3.5 text-primary" />
+                                  Study
                                 </Button>
-                              )}
+                                {!task.is_completed && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={completingTaskId === task.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCompleteTask(task.id);
+                                    }}
+                                    className="text-xs text-gray-400 hover:text-white"
+                                  >
+                                    {completingTaskId === task.id ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      'Done'
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -484,7 +503,7 @@ export default function StudentDashboard() {
                         <span className="text-sm font-medium text-gray-200">{label}</span>
                         <div className="flex items-center gap-2">
                           <span className="font-bold">{Math.round(score as number)}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isStrong ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isStrong ? 'bg-neutral-500/20 text-neutral-400 border border-neutral-500/30' : 'bg-neutral-500/20 text-neutral-400 border border-neutral-500/30'}`}>
                             {isStrong ? 'Strong' : 'Needs Work'}
                           </span>
                         </div>
@@ -538,14 +557,14 @@ export default function StudentDashboard() {
             </div>
 
             {joinError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl">
+              <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm rounded-xl">
                 {joinError}
               </div>
             )}
 
             {joinSuccessMsg ? (
               <div className="space-y-4 py-4 text-center">
-                <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl text-green-300">
+                <div className="p-4 bg-neutral-500/10 border border-neutral-500/30 rounded-xl text-neutral-300">
                   <p className="font-semibold text-sm">{joinSuccessMsg}</p>
                 </div>
                 <Button className="w-full" onClick={() => setShowJoinModal(false)}>
@@ -597,7 +616,7 @@ export default function StudentDashboard() {
 
             <div>
               <h2 className="text-2xl font-bold text-white flex items-center">
-                <Award className="w-6 h-6 mr-2 text-yellow-400" /> Path Verification Test
+                <Award className="w-6 h-6 mr-2 text-neutral-400" /> Path Verification Test
               </h2>
               <p className="text-xs text-gray-400 mt-1">
                 Answer 5 AI-generated questions to verify mastery of {activePlan?.topic}. Pass mark: 60% (3/5 correct).
@@ -614,8 +633,8 @@ export default function StudentDashboard() {
                 <div
                   className={`p-6 rounded-xl border text-center space-y-2 ${
                     verifyResult.passed
-                      ? 'bg-green-500/10 border-green-500/30 text-green-300'
-                      : 'bg-red-500/10 border-red-500/30 text-red-300'
+                      ? 'bg-neutral-500/10 border-neutral-500/30 text-neutral-300'
+                      : 'bg-neutral-500/10 border-neutral-500/30 text-neutral-300'
                   }`}
                 >
                   <p className="text-3xl font-bold">{verifyResult.score_percent}%</p>

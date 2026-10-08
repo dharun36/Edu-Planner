@@ -33,23 +33,35 @@ async def get_teacher_stats(
     current_user: User = Depends(require_role("teacher")),
     db: Session = Depends(get_db)
 ):
-    # Total students count
-    students = db.execute(
-        select(User).where(User.role == "student")
-    ).scalars().all()
+    student_query = select(User).where(User.role == "student")
+    if current_user.college_id is not None:
+        student_query = student_query.where(User.college_id == current_user.college_id)
+    students = db.execute(student_query).scalars().all()
     total_students = len(students)
+    student_ids = [s.id for s in students]
 
-    # Active plans count
-    active_plans = db.execute(
-        select(func.count(LearningPlan.id)).where(LearningPlan.status == "active")
-    ).scalar() or 0
+    # Active plans count scoped to college
+    if student_ids:
+        active_plans = db.execute(
+            select(func.count(LearningPlan.id))
+            .where(LearningPlan.status == "active", LearningPlan.user_id.in_(student_ids))
+        ).scalar() or 0
 
-    # Calculate average completion across all tasks
-    all_tasks = db.execute(select(LearningTask)).scalars().all()
-    if all_tasks:
-        completed = sum(1 for t in all_tasks if t.is_completed)
-        avg_completion = (completed / len(all_tasks)) * 100.0
+        # Calculate average completion across tasks of college students
+        tasks_q = (
+            select(LearningTask)
+            .join(LearningModule, LearningTask.module_id == LearningModule.id)
+            .join(LearningPlan, LearningModule.learning_plan_id == LearningPlan.id)
+            .where(LearningPlan.user_id.in_(student_ids))
+        )
+        all_tasks = db.execute(tasks_q).scalars().all()
+        if all_tasks:
+            completed = sum(1 for t in all_tasks if t.is_completed)
+            avg_completion = (completed / len(all_tasks)) * 100.0
+        else:
+            avg_completion = 0.0
     else:
+        active_plans = 0
         avg_completion = 0.0
 
     # Students needing attention (avg skill score < 50% or no skills assessed)
@@ -78,9 +90,10 @@ async def get_teacher_students(
     current_user: User = Depends(require_role("teacher")),
     db: Session = Depends(get_db)
 ):
-    students = db.execute(
-        select(User).where(User.role == "student").order_by(User.full_name.asc())
-    ).scalars().all()
+    student_query = select(User).where(User.role == "student")
+    if current_user.college_id is not None:
+        student_query = student_query.where(User.college_id == current_user.college_id)
+    students = db.execute(student_query.order_by(User.full_name.asc())).scalars().all()
 
     result = []
     for student in students:
@@ -123,14 +136,15 @@ async def get_teacher_activity(
 ):
     activities = []
     
-    # Recent completed assessments
-    ass_list = db.execute(
+    # Recent completed assessments scoped to college
+    ass_q = (
         select(DiagnosticAssessment, User)
         .join(User, DiagnosticAssessment.user_id == User.id)
         .where(DiagnosticAssessment.is_completed == True)
-        .order_by(DiagnosticAssessment.completed_at.desc())
-        .limit(5)
-    ).all()
+    )
+    if current_user.college_id is not None:
+        ass_q = ass_q.where(User.college_id == current_user.college_id)
+    ass_list = db.execute(ass_q.order_by(DiagnosticAssessment.completed_at.desc()).limit(5)).all()
 
     for ass, user in ass_list:
         if ass.completed_at:
@@ -140,13 +154,14 @@ async def get_teacher_activity(
                 time=ass.completed_at.isoformat()
             ))
 
-    # Recent generated plans
-    plan_list = db.execute(
+    # Recent generated plans scoped to college
+    plan_q = (
         select(LearningPlan, User)
         .join(User, LearningPlan.user_id == User.id)
-        .order_by(LearningPlan.created_at.desc())
-        .limit(5)
-    ).all()
+    )
+    if current_user.college_id is not None:
+        plan_q = plan_q.where(User.college_id == current_user.college_id)
+    plan_list = db.execute(plan_q.order_by(LearningPlan.created_at.desc()).limit(5)).all()
 
     for plan, user in plan_list:
         if plan.created_at:
@@ -158,3 +173,4 @@ async def get_teacher_activity(
 
     activities.sort(key=lambda a: a.time, reverse=True)
     return activities[:10]
+

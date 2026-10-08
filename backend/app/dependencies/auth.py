@@ -24,3 +24,17 @@ def require_role(*roles: str) -> Callable[[User], User]:
         return user
 
     return dependency
+
+
+def require_tenant() -> Callable[[User], int]:
+    """Ensures user belongs to a college tenant and returns the college_id."""
+    async def dependency(user: User = Depends(get_current_user)) -> int:
+        if user.role != "platform_admin" and not user.college_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User is not associated with an authorized college tenant",
+            )
+        return user.college_id or 0
+
+    return dependency
+

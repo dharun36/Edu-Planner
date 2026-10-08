@@ -24,11 +24,11 @@ import {
 function FileBadge({ name }: { name: string }) {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
   const map: Record<string, { label: string; bg: string; text: string }> = {
-    pdf:  { label: 'PDF',  bg: 'bg-red-500/20',   text: 'text-red-400'   },
-    docx: { label: 'DOCX', bg: 'bg-blue-500/20',  text: 'text-blue-400'  },
-    pptx: { label: 'PPTX', bg: 'bg-orange-500/20',text: 'text-orange-400'},
+    pdf:  { label: 'PDF',  bg: 'bg-neutral-500/20',   text: 'text-neutral-400'   },
+    docx: { label: 'DOCX', bg: 'bg-neutral-500/20',  text: 'text-neutral-400'  },
+    pptx: { label: 'PPTX', bg: 'bg-neutral-500/20',text: 'text-neutral-400'},
     txt:  { label: 'TXT',  bg: 'bg-gray-500/20',  text: 'text-gray-400'  },
-    md:   { label: 'MD',   bg: 'bg-green-500/20', text: 'text-green-400' },
+    md:   { label: 'MD',   bg: 'bg-neutral-500/20', text: 'text-neutral-400' },
   };
   const { label, bg, text } = map[ext] ?? { label: ext.toUpperCase() || 'FILE', bg: 'bg-white/10', text: 'text-gray-400' };
   return (
@@ -126,7 +126,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                  className="ml-auto text-gray-400 hover:text-red-400 transition-colors"
+                  className="ml-auto text-gray-400 hover:text-neutral-400 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -162,12 +162,12 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-300 text-sm">
               <AlertCircle className="w-4 h-4 shrink-0" /> {error}
             </div>
           )}
           {success && (
-            <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-300 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-300 text-sm">
               <CheckCircle2 className="w-4 h-4 shrink-0" /> Uploaded and indexed successfully!
             </div>
           )}

@@ -67,13 +67,16 @@ class AgentState(TypedDict):
     """
     # Core identity and goal context
     student_id: int
+    college_id: NotRequired[Optional[int]]
     subject: str
     topic: str
     learning_goal: str
     
     # Skill assessment context
     skill_scores: SkillScores
+    academic_skills: NotRequired[Optional[dict[str, float]]]
     skill_gaps: NotRequired[Optional[dict[str, Any]]]
+
     
     # External retrieved context
     curriculum_context: NotRequired[Optional[str]]

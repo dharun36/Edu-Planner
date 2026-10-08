@@ -27,7 +27,12 @@ export default function Login() {
       
       login(access_token, user);
       
-      navigate(`/${user.role}/dashboard`);
+      const rolePath = user.role.replace('_', '-');
+      if (user.role === 'student' && !user.onboarding_complete) {
+        navigate('/student/assessment');
+      } else {
+        navigate(`/${rolePath}/dashboard`);
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to login. Please check your credentials.');
     } finally {
@@ -51,7 +56,7 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-3 text-sm bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl">
+              <div className="p-3 text-sm bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 rounded-xl">
                 {error}
               </div>
             )}
@@ -75,7 +80,7 @@ export default function Login() {
             />
             
             <div className="flex items-center justify-end">
-              <a href="#" className="text-sm text-primary hover:text-blue-400 font-medium">
+              <a href="#" className="text-sm text-primary hover:text-neutral-400 font-medium">
                 Forgot password?
               </a>
             </div>
@@ -86,7 +91,7 @@ export default function Login() {
             
             <div className="text-center text-sm text-gray-400 pt-4">
               Don't have an account?{' '}
-              <Link to="/register" className="text-primary hover:text-blue-400 font-medium">
+              <Link to="/register" className="text-primary hover:text-neutral-400 font-medium">
                 Create one now
               </Link>
             </div>
