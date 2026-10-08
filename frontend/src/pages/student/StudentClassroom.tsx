@@ -117,7 +117,7 @@ function ViewDocumentModal({ materialId, onClose }: { materialId: number; onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-3xl bg-surface border border-white/10 rounded-2xl shadow-2xl max-h-[85vh] flex flex-col">
+      <div className="w-full max-w-3xl bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl shadow-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/20 rounded-xl border border-primary/30">
@@ -551,7 +551,7 @@ export default function StudentClassroom() {
 
   if (error || !classroom) {
     return (
-      <div className="max-w-xl mx-auto mt-12 p-6 bg-surface border border-neutral-500/30 rounded-2xl text-center space-y-4">
+      <div className="max-w-xl mx-auto mt-12 p-6 bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl text-center space-y-4">
         <div className="w-12 h-12 rounded-full bg-neutral-500/20 text-neutral-400 flex items-center justify-center mx-auto">
           <AlertCircle className="w-6 h-6" />
         </div>
@@ -653,8 +653,8 @@ export default function StudentClassroom() {
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
                   isActive
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'bg-surface hover:bg-surface-light text-gray-400 hover:text-white border border-white/5'
+                    ? 'bg-[#0A0A0A] text-white dark:bg-[#FAFAFA] dark:text-[#0A0A0A]'
+                    : 'bg-white dark:bg-[#171717] hover:bg-[#F5F5F5] dark:hover:bg-[#202020] text-[#737373] dark:text-[#A3A3A3] hover:text-[#0A0A0A] dark:hover:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#262626]'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -792,7 +792,7 @@ export default function StudentClassroom() {
                         {materials.slice(0, 4).map((m) => (
                           <div
                             key={m.id}
-                            className="p-3 bg-surface-light border border-white/5 hover:border-primary/40 rounded-xl flex items-center justify-between transition-colors"
+                            className="p-3 bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] hover:border-[#0A0A0A] dark:hover:border-[#FAFAFA] rounded-xl flex items-center justify-between transition-colors"
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <FileBadge name={m.file_name} />
@@ -886,7 +886,7 @@ export default function StudentClassroom() {
                   placeholder="Search materials..."
                   value={materialSearch}
                   onChange={(e) => setMaterialSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary"
+                  className="w-full pl-9 pr-4 py-2 bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] rounded-xl text-xs text-[#0A0A0A] dark:text-[#FAFAFA] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#0A0A0A] dark:focus:border-[#FAFAFA]"
                 />
               </div>
             </div>

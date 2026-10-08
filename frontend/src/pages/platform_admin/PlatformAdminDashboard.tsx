@@ -11,7 +11,6 @@ import {
   Loader2,
   ArrowRight,
   Server,
-  Activity,
   CheckCircle2,
 } from 'lucide-react';
 import {
@@ -50,30 +49,30 @@ export default function PlatformAdminDashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-neutral-400 animate-spin" />
+        <Loader2 className="w-6 h-6 text-[#0A0A0A] dark:text-[#FAFAFA] animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-neutral-500/10 via-surface to-surface p-6 rounded-2xl border border-neutral-500/20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white dark:bg-[#171717] rounded-xl border border-[#E5E5E5] dark:border-[#262626]">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-500/20 text-neutral-400 text-xs font-semibold mb-3 border border-neutral-500/30">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#F5F5F5] dark:bg-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] text-[11px] font-semibold mb-2 border border-[#E5E5E5] dark:border-[#333333]">
             <Server className="w-3.5 h-3.5" />
-            Super-Admin SaaS Console
+            Super-Admin Console
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-[#0A0A0A] dark:text-[#FAFAFA] tracking-tight">
             Platform Master Console
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">
             Global tenant overview, institution lifecycle management, and platform analytics.
           </p>
         </div>
         <div>
           <Link to="/platform-admin/colleges">
-            <Button className="flex items-center gap-2 bg-neutral-500 hover:bg-neutral-400 text-black font-semibold">
+            <Button className="flex items-center gap-2 text-xs">
               <Plus className="w-4 h-4" />
               Onboard College Tenant
             </Button>
@@ -83,64 +82,64 @@ export default function PlatformAdminDashboard() {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-white/5 bg-surface/60">
-          <CardContent className="p-6">
+        <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-400">Total Institutions</span>
-              <div className="w-10 h-10 rounded-xl bg-neutral-500/10 flex items-center justify-center text-neutral-400 border border-neutral-500/20">
-                <Building className="w-5 h-5" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">Total Institutions</span>
+              <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] dark:bg-[#262626] flex items-center justify-center text-[#0A0A0A] dark:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#333333]">
+                <Building className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-bold text-white">{stats?.total_colleges ?? 0}</h3>
-              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                <span className="text-neutral-400 font-semibold">{stats?.active_colleges ?? 0}</span> active tenants
+            <div className="mt-3">
+              <h3 className="text-2xl font-bold tracking-tight text-[#0A0A0A] dark:text-[#FAFAFA]">{stats?.total_colleges ?? 0}</h3>
+              <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">
+                <span className="text-[#0A0A0A] dark:text-[#FAFAFA] font-medium">{stats?.active_colleges ?? 0}</span> active tenants
               </p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/5 bg-surface/60">
-          <CardContent className="p-6">
+        <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-400">Total Users</span>
-              <div className="w-10 h-10 rounded-xl bg-neutral-500/10 flex items-center justify-center text-neutral-400 border border-neutral-500/20">
-                <Users className="w-5 h-5" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">Total Users</span>
+              <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] dark:bg-[#262626] flex items-center justify-center text-[#0A0A0A] dark:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#333333]">
+                <Users className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-bold text-white">{stats?.total_users ?? 0}</h3>
-              <p className="text-xs text-gray-400 mt-1">Across all colleges</p>
+            <div className="mt-3">
+              <h3 className="text-2xl font-bold tracking-tight text-[#0A0A0A] dark:text-[#FAFAFA]">{stats?.total_users ?? 0}</h3>
+              <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">Across all colleges</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/5 bg-surface/60">
-          <CardContent className="p-6">
+        <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-400">Active Students</span>
-              <div className="w-10 h-10 rounded-xl bg-neutral-500/10 flex items-center justify-center text-neutral-400 border border-neutral-500/20">
-                <GraduationCap className="w-5 h-5" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">Active Students</span>
+              <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] dark:bg-[#262626] flex items-center justify-center text-[#0A0A0A] dark:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#333333]">
+                <GraduationCap className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-bold text-white">{stats?.total_students ?? 0}</h3>
-              <p className="text-xs text-gray-400 mt-1">Registered learners</p>
+            <div className="mt-3">
+              <h3 className="text-2xl font-bold tracking-tight text-[#0A0A0A] dark:text-[#FAFAFA]">{stats?.total_students ?? 0}</h3>
+              <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">Registered learners</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-white/5 bg-surface/60">
-          <CardContent className="p-6">
+        <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-400">Faculty & Staff</span>
-              <div className="w-10 h-10 rounded-xl bg-neutral-500/10 flex items-center justify-center text-neutral-400 border border-neutral-500/20">
-                <ShieldCheck className="w-5 h-5" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">Faculty & Staff</span>
+              <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] dark:bg-[#262626] flex items-center justify-center text-[#0A0A0A] dark:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#333333]">
+                <ShieldCheck className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-4">
-              <h3 className="text-3xl font-bold text-white">{stats?.total_teachers ?? 0}</h3>
-              <p className="text-xs text-gray-400 mt-1">
+            <div className="mt-3">
+              <h3 className="text-2xl font-bold tracking-tight text-[#0A0A0A] dark:text-[#FAFAFA]">{stats?.total_teachers ?? 0}</h3>
+              <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">
                 {stats?.total_admins ?? 0} Tenant Administrators
               </p>
             </div>
@@ -149,15 +148,15 @@ export default function PlatformAdminDashboard() {
       </div>
 
       {/* Colleges Overview */}
-      <Card className="border-white/5 bg-surface/60">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
+      <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-[#E5E5E5] dark:border-[#262626] px-5 py-4">
           <div>
-            <CardTitle className="text-lg font-semibold text-white">Institutions & Tenants</CardTitle>
-            <p className="text-xs text-gray-400 mt-0.5">Configured college environments</p>
+            <CardTitle className="text-sm font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">Institutions & Tenants</CardTitle>
+            <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-0.5">Configured college environments</p>
           </div>
           <Link
             to="/platform-admin/colleges"
-            className="text-xs text-neutral-400 hover:text-neutral-300 flex items-center gap-1 font-medium"
+            className="text-xs text-[#0A0A0A] dark:text-[#FAFAFA] hover:underline flex items-center gap-1 font-medium"
           >
             Manage Colleges
             <ArrowRight className="w-3.5 h-3.5" />
@@ -165,30 +164,30 @@ export default function PlatformAdminDashboard() {
         </CardHeader>
         <CardContent className="p-0">
           {colleges.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 text-sm">
+            <div className="p-8 text-center text-[#737373] text-xs">
               No institutions onboarded yet.
             </div>
           ) : (
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-[#E5E5E5] dark:divide-[#262626]">
               {colleges.map((college) => (
-                <div key={college.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02]">
+                <div key={college.id} className="p-4 flex items-center justify-between hover:bg-[#F5F5F5]/60 dark:hover:bg-[#202020]/60 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-neutral-500/10 border border-neutral-500/20 flex items-center justify-center text-neutral-400 font-bold text-sm">
+                    <div className="w-8 h-8 rounded-lg bg-[#E5E5E5] dark:bg-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center justify-center font-bold text-xs">
                       {college.code || college.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">{college.name}</p>
-                      <p className="text-xs text-gray-400 font-mono mt-0.5">
+                      <p className="text-xs font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">{college.name}</p>
+                      <p className="text-[11px] text-[#737373] dark:text-[#A3A3A3] font-mono mt-0.5">
                         Code: {college.code} • Domain: {college.domain || 'N/A'}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <span
-                      className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${
+                      className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md font-medium ${
                         college.is_active
-                          ? 'bg-neutral-500/10 text-neutral-400 border border-neutral-500/20'
-                          : 'bg-neutral-500/10 text-neutral-400 border border-neutral-500/20'
+                          ? 'bg-[#0A0A0A] text-white dark:bg-[#FAFAFA] dark:text-[#0A0A0A]'
+                          : 'text-[#737373] border border-[#E5E5E5] dark:border-[#262626]'
                       }`}
                     >
                       <CheckCircle2 className="w-3 h-3" />

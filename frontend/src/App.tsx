@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/auth/AuthProvider';
+import { ThemeProvider } from './components/theme/ThemeProvider';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 
 import Login from './pages/auth/Login';
@@ -9,13 +10,13 @@ import Register from './pages/auth/Register';
 // Student
 import StudentLayout from './layouts/StudentLayout';
 import StudentDashboard from './pages/student/StudentDashboard';
+import Onboarding from './pages/student/Onboarding';
 import Assessment from './pages/student/Assessment';
 import LearningPlanGenerator from './pages/student/LearningPlanGenerator';
 import SkillTree from './pages/student/SkillTree';
 import Materials from './pages/student/Materials';
 import Progress from './pages/student/Progress';
 import Profile from './pages/student/Profile';
-import StudentClassroom from './pages/student/StudentClassroom';
 import LearningGoal from './pages/student/LearningGoal';
 import TaskWorkspace from './pages/student/TaskWorkspace';
 import VerificationTest from './pages/student/VerificationTest';
@@ -40,66 +41,67 @@ import CollegeManager from './pages/platform_admin/CollegeManager';
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+      <ThemeProvider>
+        <AuthProvider>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-          {/* Protected Student Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-            <Route element={<StudentLayout />}>
-              <Route path="/student/assessment" element={<Assessment />} />
-              <Route path="/student/onboarding" element={<Navigate to="/student/assessment" replace />} />
-              <Route element={<ProtectedRoute allowedRoles={['student']} requireAssessmentComplete />}>
-                <Route path="/student/goal" element={<LearningGoal />} />
-                <Route path="/student/dashboard" element={<StudentDashboard />} />
-                <Route path="/student/generate" element={<LearningPlanGenerator />} />
-                <Route path="/student/plan" element={<LearningPlanGenerator />} />
-                <Route path="/student/learn/:taskId" element={<TaskWorkspace />} />
-                <Route path="/student/verify/:planId" element={<VerificationTest />} />
-                <Route path="/student/skill-tree" element={<SkillTree />} />
-                <Route path="/student/skills" element={<SkillTree />} />
-                <Route path="/student/materials" element={<Materials />} />
-                <Route path="/student/progress" element={<Progress />} />
-                <Route path="/student/profile" element={<Profile />} />
-                <Route path="/student/classroom/:classId" element={<StudentClassroom />} />
+            {/* Protected Student Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['student']} />}>
+              <Route element={<StudentLayout />}>
+                <Route path="/student/onboarding" element={<Onboarding />} />
+                <Route path="/student/assessment" element={<Assessment />} />
+                <Route element={<ProtectedRoute allowedRoles={['student']} requireAssessmentComplete />}>
+                  <Route path="/student/dashboard" element={<StudentDashboard />} />
+                  <Route path="/student/goal" element={<LearningGoal />} />
+                  <Route path="/student/generate" element={<LearningPlanGenerator />} />
+                  <Route path="/student/plan" element={<LearningPlanGenerator />} />
+                  <Route path="/student/learn/:taskId" element={<TaskWorkspace />} />
+                  <Route path="/student/verify/:planId" element={<VerificationTest />} />
+                  <Route path="/student/skill-tree" element={<SkillTree />} />
+                  <Route path="/student/skills" element={<SkillTree />} />
+                  <Route path="/student/materials" element={<Materials />} />
+                  <Route path="/student/progress" element={<Progress />} />
+                  <Route path="/student/profile" element={<Profile />} />
+                </Route>
               </Route>
             </Route>
-          </Route>
 
-          {/* Protected Teacher Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
-            <Route element={<TeacherLayout />}>
-              <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-              <Route path="/teacher/students" element={<StudentViewer />} />
-              <Route path="/teacher/materials" element={<Materials />} />
+            {/* Protected Teacher Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
+              <Route element={<TeacherLayout />}>
+                <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+                <Route path="/teacher/students" element={<StudentViewer />} />
+                <Route path="/teacher/materials" element={<Materials />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Protected College Admin Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['college_admin']} />}>
-            <Route element={<CollegeAdminLayout />}>
-              <Route path="/college-admin/dashboard" element={<CollegeAdminDashboard />} />
-              <Route path="/college-admin/students" element={<StudentRegistryManager />} />
-              <Route path="/college-admin/teachers" element={<TeacherInviteManager />} />
-              <Route path="/college-admin/academic" element={<AcademicStructureManager />} />
+            {/* Protected College Admin Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['college_admin']} />}>
+              <Route element={<CollegeAdminLayout />}>
+                <Route path="/college-admin/dashboard" element={<CollegeAdminDashboard />} />
+                <Route path="/college-admin/students" element={<StudentRegistryManager />} />
+                <Route path="/college-admin/teachers" element={<TeacherInviteManager />} />
+                <Route path="/college-admin/academic" element={<AcademicStructureManager />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Protected Platform Admin Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['platform_admin']} />}>
-            <Route element={<PlatformAdminLayout />}>
-              <Route path="/platform-admin/dashboard" element={<PlatformAdminDashboard />} />
-              <Route path="/platform-admin/colleges" element={<CollegeManager />} />
+            {/* Protected Platform Admin Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['platform_admin']} />}>
+              <Route element={<PlatformAdminLayout />}>
+                <Route path="/platform-admin/dashboard" element={<PlatformAdminDashboard />} />
+                <Route path="/platform-admin/colleges" element={<CollegeManager />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Catch-all fallback */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </AuthProvider>
+            {/* Catch-all fallback */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

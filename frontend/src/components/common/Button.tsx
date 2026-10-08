@@ -11,20 +11,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
     
-    const baseStyles = 'inline-flex items-center justify-center rounded-xl font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50';
+    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A0A0A] focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-40 cursor-pointer select-none';
     
     const variants = {
-      primary: 'bg-primary text-neutral-900 hover:bg-neutral-300 shadow-lg shadow-black/20',
-      secondary: 'bg-surface border border-neutral-700 hover:bg-neutral-800 text-neutral-100',
-      outline: 'border border-neutral-500 text-neutral-100 hover:bg-neutral-800',
-      ghost: 'hover:bg-neutral-800 hover:text-white text-neutral-300',
-      danger: 'bg-neutral-800 text-white hover:bg-neutral-700',
+      primary: 'bg-[#0A0A0A] text-white hover:bg-[#262626] active:bg-[#171717]',
+      secondary: 'bg-white text-[#0A0A0A] border border-[#E5E5E5] hover:bg-[#F5F5F5] active:bg-[#E5E5E5]',
+      outline: 'bg-transparent text-[#0A0A0A] border border-[#262626] hover:bg-[#F5F5F5] active:bg-[#E5E5E5]',
+      ghost: 'bg-transparent text-[#262626] hover:bg-[#F5F5F5] hover:text-[#0A0A0A]',
+      danger: 'bg-[#262626] text-white hover:bg-[#0A0A0A]',
     };
     
     const sizes = {
-      sm: 'h-9 px-4 text-sm',
-      md: 'h-11 px-6 text-base',
-      lg: 'h-14 px-8 text-lg rounded-2xl',
+      sm: 'h-8 px-3 text-xs gap-1.5',
+      md: 'h-10 px-4 text-sm gap-2',
+      lg: 'h-12 px-6 text-base gap-2.5',
     };
 
     return (
@@ -34,10 +34,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         {...props}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && <Loader2 className="h-4 w-4 animate-spin text-current shrink-0" />}
         {children}
       </button>
     );
   }
 );
 Button.displayName = 'Button';
+

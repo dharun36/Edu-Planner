@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
 import { useAuth } from '../../components/auth/AuthProvider';
-import { Users, BookOpen, AlertCircle, TrendingUp, Loader2, Plus, Copy, Check, School, ShieldCheck, X, Upload, File as FileIcon, Trash2 } from 'lucide-react';
+import { Users, BookOpen, AlertCircle, TrendingUp, Loader2, Plus, Copy, Check, School, X, Upload, File as FileIcon, Trash2 } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { teacherApi, TeacherStats, TeacherActivity, StudentProgress } from '../../api/teacher';
@@ -104,7 +104,7 @@ export default function TeacherDashboard() {
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2500);
+    setTimeout(() => setCopiedCode(null), 2000);
   };
 
   const handleViewMembers = async (cls: Classroom) => {
@@ -114,7 +114,7 @@ export default function TeacherDashboard() {
       const members = await classroomApi.getClassMembers(cls.id);
       setClassMembers(members);
     } catch (err) {
-      console.error('Failed to load class members', err);
+      console.error('Failed to fetch class members', err);
     } finally {
       setIsLoadingMembers(false);
     }
@@ -122,25 +122,25 @@ export default function TeacherDashboard() {
 
   const handleViewMaterials = async (cls: Classroom) => {
     setSelectedClassForUpload(cls);
-    setUploadFile(null);
+    setIsLoadingMaterials(true);
     setUploadError('');
     setUploadSuccess(false);
-    setIsLoadingMaterials(true);
     try {
-      const allMaterials = await materialsApi.list(cls.college);
-      setClassMaterials(allMaterials.filter(m => m.semester === cls.semester && m.regulation === cls.regulation));
+      const materials = await materialsApi.list(cls.college || undefined);
+      setClassMaterials(materials);
     } catch (err) {
-      console.error('Failed to load materials', err);
+      console.error('Failed to fetch class materials', err);
     } finally {
       setIsLoadingMaterials(false);
     }
   };
 
-  const handleDeleteMaterial = async (id: number) => {
-    setIsDeletingMaterial(id);
+  const handleDeleteMaterial = async (materialId: number) => {
+    if (!selectedClassForUpload) return;
+    setIsDeletingMaterial(materialId);
     try {
-      await materialsApi.delete(id);
-      setClassMaterials(prev => prev.filter(m => m.id !== id));
+      await materialsApi.delete(materialId);
+      setClassMaterials(prev => prev.filter(m => m.id !== materialId));
     } catch (err) {
       console.error('Failed to delete material', err);
     } finally {
@@ -151,15 +151,16 @@ export default function TeacherDashboard() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUploadFile(e.target.files[0]);
+      setUploadError('');
     }
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadFile || !selectedClassForUpload) return;
+    if (!selectedClassForUpload || !uploadFile) return;
+
     setIsUploading(true);
     setUploadError('');
-    setUploadSuccess(false);
     try {
       const newMaterial = await materialsApi.upload({
         file: uploadFile,
@@ -200,97 +201,99 @@ export default function TeacherDashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary mr-3" />
-        <span className="text-gray-400">Loading instructor dashboard...</span>
+        <Loader2 className="w-6 h-6 animate-spin text-[#0A0A0A] dark:text-[#FAFAFA] mr-3" />
+        <span className="text-xs text-[#737373]">Loading instructor dashboard...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Instructor Dashboard</h1>
-        <p className="text-gray-400">Welcome back, {user?.full_name}. Real-time analytics from PostgreSQL database.</p>
+      <div className="pb-2 border-b border-[#E5E5E5] dark:border-[#262626]">
+        <h1 className="text-2xl font-bold tracking-tight text-[#0A0A0A] dark:text-[#FAFAFA]">Instructor Dashboard</h1>
+        <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">
+          Welcome back, {user?.full_name}. Real-time analytics and classroom management.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
-              <Users className="w-6 h-6" />
+        <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#F5F5F5] dark:bg-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#333333] flex items-center justify-center">
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-400">Total Students</p>
-              <p className="text-2xl font-bold">{stats?.total_students ?? 0}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">Total Students</p>
+              <p className="text-2xl font-bold text-[#0A0A0A] dark:text-[#FAFAFA]">{stats?.total_students ?? 0}</p>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
-              <BookOpen className="w-6 h-6" />
+        <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#F5F5F5] dark:bg-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#333333] flex items-center justify-center">
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-400">Active Plans</p>
-              <p className="text-2xl font-bold">{stats?.active_plans ?? 0}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">Active Plans</p>
+              <p className="text-2xl font-bold text-[#0A0A0A] dark:text-[#FAFAFA]">{stats?.active_plans ?? 0}</p>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
-              <TrendingUp className="w-6 h-6" />
+        <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#F5F5F5] dark:bg-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#333333] flex items-center justify-center">
+              <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-400">Avg Completion</p>
-              <p className="text-2xl font-bold">{stats?.avg_completion_rate ?? 0}%</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">Avg Completion</p>
+              <p className="text-2xl font-bold text-[#0A0A0A] dark:text-[#FAFAFA]">{stats?.avg_completion_rate ?? 0}%</p>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
-              <AlertCircle className="w-6 h-6" />
+        <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
+          <CardContent className="p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#F5F5F5] dark:bg-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] border border-[#E5E5E5] dark:border-[#333333] flex items-center justify-center">
+              <AlertCircle className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-400">Needs Attention</p>
-              <p className="text-2xl font-bold">{stats?.students_needing_attention ?? 0}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">Needs Attention</p>
+              <p className="text-2xl font-bold text-[#0A0A0A] dark:text-[#FAFAFA]">{stats?.students_needing_attention ?? 0}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* My Classes Section */}
-      <Card className="border-primary/20 bg-surface">
-        <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5">
+      <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-[#E5E5E5] dark:border-[#262626] px-5 py-4">
           <div>
-            <CardTitle className="text-xl flex items-center">
-              <School className="w-5 h-5 mr-2 text-primary" /> My Classes
+            <CardTitle className="text-sm font-semibold text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center">
+              <School className="w-4 h-4 mr-2" /> My Classes
             </CardTitle>
-            <p className="text-xs text-gray-400 mt-1">Manage classrooms, generate class codes, and view enrolled students.</p>
+            <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-0.5">Manage classrooms, generate class codes, and view enrolled students.</p>
           </div>
-          <Button onClick={() => { setShowCreateModal(true); setCreatedClassCode(null); setCreateError(''); }} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Create Class
+          <Button onClick={() => { setShowCreateModal(true); setCreatedClassCode(null); setCreateError(''); }} className="flex items-center gap-2 text-xs">
+            <Plus className="w-3.5 h-3.5" /> Create Class
           </Button>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-5">
           {classes.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {classes.map((cls) => (
-                <div key={cls.id} className="p-4 rounded-xl bg-surface-light border border-white/10 hover:border-primary/40 transition-colors flex flex-col justify-between space-y-4">
+                <div key={cls.id} className="p-4 rounded-xl bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] flex flex-col justify-between space-y-4">
                   <div>
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-lg text-white">{cls.name}</h3>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                      <h3 className="font-semibold text-sm text-[#0A0A0A] dark:text-[#FAFAFA]">{cls.name}</h3>
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#E5E5E5] dark:bg-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA]">
                         {cls.member_count} {cls.member_count === 1 ? 'Student' : 'Students'}
                       </span>
                     </div>
 
-                    <div className="text-xs space-y-1 text-gray-400 mb-3">
-                      {cls.college && <p><span className="text-gray-500">College:</span> {cls.college}</p>}
+                    <div className="text-xs space-y-0.5 text-[#737373] dark:text-[#A3A3A3] mb-3">
+                      {cls.college && <p><span className="text-[#A3A3A3]">College:</span> {cls.college}</p>}
                       {(cls.year || cls.semester || cls.regulation || cls.section) && (
                         <p>
                           {cls.year && `Year ${cls.year} • `}
@@ -302,20 +305,20 @@ export default function TeacherDashboard() {
                     </div>
 
                     {/* Class Code Box */}
-                    <div className="p-3 bg-black/40 rounded-lg border border-white/10 flex items-center justify-between">
+                    <div className="p-3 bg-white dark:bg-[#171717] rounded-lg border border-[#E5E5E5] dark:border-[#262626] flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-gray-400">Class Code</p>
-                        <p className="text-lg font-mono font-bold tracking-wider text-primary">{cls.code}</p>
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-[#737373] dark:text-[#A3A3A3]">Class Code</p>
+                        <p className="text-base font-mono font-bold tracking-wider text-[#0A0A0A] dark:text-[#FAFAFA]">{cls.code}</p>
                       </div>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleCopyCode(cls.code)}
-                        className="text-xs flex items-center gap-1 text-gray-300 hover:text-white"
+                        className="text-xs flex items-center gap-1 h-7"
                       >
                         {copiedCode === cls.code ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-neutral-400" /> Copied
+                            <Check className="w-3.5 h-3.5 text-[#0A0A0A] dark:text-[#FAFAFA]" /> Copied
                           </>
                         ) : (
                           <>
@@ -330,34 +333,34 @@ export default function TeacherDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-xs"
+                      className="flex-1 text-xs h-7"
                       onClick={() => handleViewMembers(cls)}
                     >
-                      <Users className="w-3.5 h-3.5 mr-1.5" /> Members ({cls.member_count})
+                      <Users className="w-3 h-3 mr-1" /> Members ({cls.member_count})
                     </Button>
                     <Button
-                      variant="primary"
+                      variant="outline"
                       size="sm"
-                      className="flex-1 text-xs"
+                      className="flex-1 text-xs h-7"
                       onClick={() => handleViewMaterials(cls)}
                     >
-                      <BookOpen className="w-3.5 h-3.5 mr-1.5" /> Materials
+                      <BookOpen className="w-3 h-3 mr-1" /> Materials
                     </Button>
                     <Button
-                      variant="danger"
+                      variant="outline"
                       size="sm"
-                      className="px-2"
+                      className="px-2 h-7"
                       onClick={() => setClassToDelete(cls)}
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-white" />
+                      <Trash2 className="w-3 h-3 text-[#737373] hover:text-[#0A0A0A] dark:hover:text-[#FAFAFA]" />
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-400 text-sm">
-              No classes created yet. Click <span className="text-primary font-semibold">"Create Class"</span> to generate a class code.
+            <div className="text-center py-8 text-[#737373] text-xs">
+              No classes created yet. Click <span className="font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">"Create Class"</span> to generate a class code.
             </div>
           )}
         </CardContent>
@@ -365,28 +368,30 @@ export default function TeacherDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recent Student Activity</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => navigate('/teacher/students')}>View All Students</Button>
+          <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between px-5 py-4 border-b border-[#E5E5E5] dark:border-[#262626]">
+              <CardTitle className="text-sm font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">Recent Student Activity</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => navigate('/teacher/students')} className="text-xs h-7">
+                View All Students
+              </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {activities.length > 0 ? (
-                <div className="space-y-4">
+                <div className="divide-y divide-[#E5E5E5] dark:divide-[#262626]">
                   {activities.map((item, i) => (
-                    <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-xl border border-white/10">
+                    <div key={i} className="flex justify-between items-center p-4 hover:bg-[#F5F5F5]/60 dark:hover:bg-[#202020]/60 transition-colors">
                       <div>
-                        <p className="font-semibold text-gray-200">{item.name}</p>
-                        <p className="text-sm text-gray-400">{item.action}</p>
+                        <p className="font-semibold text-xs text-[#0A0A0A] dark:text-[#FAFAFA]">{item.name}</p>
+                        <p className="text-[11px] text-[#737373] dark:text-[#A3A3A3]">{item.action}</p>
                       </div>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-[10px] text-[#737373] dark:text-[#A3A3A3]">
                         {new Date(item.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-400 text-sm">
+                <div className="text-center py-8 text-[#737373] text-xs">
                   No recent student activity recorded yet.
                 </div>
               )}
@@ -395,19 +400,19 @@ export default function TeacherDashboard() {
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Students Needing Attention</CardTitle>
+          <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] overflow-hidden">
+            <CardHeader className="px-5 py-4 border-b border-[#E5E5E5] dark:border-[#262626]">
+              <CardTitle className="text-sm font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">Students Needing Attention</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4">
               {needingAttention.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {needingAttention.map((student) => (
-                    <div key={student.user.id} className="flex gap-4 items-start p-3 bg-neutral-500/5 rounded-xl border border-neutral-500/10">
-                      <AlertCircle className="w-5 h-5 text-neutral-400 shrink-0 mt-0.5" />
+                    <div key={student.user.id} className="flex gap-3 items-start p-3 bg-[#FAFAFA] dark:bg-[#111111] rounded-lg border border-[#E5E5E5] dark:border-[#262626]">
+                      <AlertCircle className="w-4 h-4 text-[#737373] shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-gray-200">{student.user.full_name}</p>
-                        <p className="text-xs text-neutral-400/80">
+                        <p className="text-xs font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">{student.user.full_name}</p>
+                        <p className="text-[11px] text-[#737373] dark:text-[#A3A3A3]">
                           {student.skills_assessed === 0 ? 'Assessment not completed' : `Low average score (${student.average_score}%)`}
                         </p>
                       </div>
@@ -415,7 +420,7 @@ export default function TeacherDashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 py-4 text-center">All students are making good progress! 🎉</p>
+                <p className="text-xs text-[#737373] py-4 text-center">All students are making good progress!</p>
               )}
             </CardContent>
           </Card>
@@ -424,38 +429,38 @@ export default function TeacherDashboard() {
 
       {/* Create Class Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-surface border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl relative">
             <button
               onClick={() => setShowCreateModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-[#737373] hover:text-[#0A0A0A] dark:hover:text-[#FAFAFA]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
             <div>
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <School className="w-6 h-6 mr-2 text-primary" /> Create New Class
+              <h2 className="text-base font-bold text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center">
+                <School className="w-4 h-4 mr-2" /> Create New Class
               </h2>
-              <p className="text-xs text-gray-400 mt-1">Enter details to generate a unique 6-character class code.</p>
+              <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">Enter details to generate a unique 6-character class code.</p>
             </div>
 
             {createError && (
-              <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm rounded-xl">
+              <div className="p-3 bg-[#F5F5F5] dark:bg-[#202020] border border-[#E5E5E5] dark:border-[#262626] text-xs rounded-lg text-[#0A0A0A] dark:text-[#FAFAFA]">
                 {createError}
               </div>
             )}
 
             {createdClassCode ? (
               <div className="space-y-4 py-4 text-center">
-                <div className="p-4 bg-neutral-500/10 border border-neutral-500/30 rounded-xl text-neutral-300">
-                  <p className="font-semibold text-sm">Class Created Successfully!</p>
-                  <p className="text-xs text-neutral-400/80 mt-1">Share this code with your students to let them join.</p>
+                <div className="p-4 bg-[#F5F5F5] dark:bg-[#202020] border border-[#E5E5E5] dark:border-[#262626] rounded-lg">
+                  <p className="font-semibold text-xs text-[#0A0A0A] dark:text-[#FAFAFA]">Class Created Successfully!</p>
+                  <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">Share this code with your students to let them join.</p>
                 </div>
 
-                <div className="p-6 bg-black/60 rounded-xl border border-primary/30 inline-block w-full">
-                  <p className="text-xs font-semibold uppercase text-gray-400 mb-1">Generated Class Code</p>
-                  <p className="text-3xl font-mono font-bold tracking-widest text-primary">{createdClassCode}</p>
+                <div className="p-4 bg-[#FAFAFA] dark:bg-[#111111] rounded-lg border border-[#E5E5E5] dark:border-[#262626] inline-block w-full">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3] mb-1">Generated Class Code</p>
+                  <p className="text-2xl font-mono font-bold tracking-widest text-[#0A0A0A] dark:text-[#FAFAFA]">{createdClassCode}</p>
                 </div>
 
                 <Button
@@ -464,7 +469,7 @@ export default function TeacherDashboard() {
                 >
                   {copiedCode === createdClassCode ? (
                     <>
-                      <Check className="w-4 h-4 text-neutral-400" /> Copied Code to Clipboard!
+                      <Check className="w-4 h-4" /> Copied Code to Clipboard!
                     </>
                   ) : (
                     <>
@@ -478,7 +483,7 @@ export default function TeacherDashboard() {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleCreateClassSubmit} className="space-y-4">
+              <form onSubmit={handleCreateClassSubmit} className="space-y-3">
                 <Input
                   label="Class Name *"
                   name="name"
@@ -490,7 +495,7 @@ export default function TeacherDashboard() {
                 <Input
                   label="College"
                   name="college"
-                  placeholder="e.g. Kongu Engineering College"
+                  placeholder="e.g. Engineering College"
                   value={classForm.college}
                   onChange={handleFormChange}
                 />
@@ -527,7 +532,7 @@ export default function TeacherDashboard() {
                   />
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2.5 pt-3 border-t border-[#E5E5E5] dark:border-[#262626]">
                   <Button type="button" variant="outline" className="w-full" onClick={() => setShowCreateModal(false)}>
                     Cancel
                   </Button>
@@ -544,48 +549,48 @@ export default function TeacherDashboard() {
 
       {/* View Class Members Modal */}
       {selectedClassForMembers && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-surface border border-white/10 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl relative max-h-[85vh] flex flex-col">
             <button
               onClick={() => setSelectedClassForMembers(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-[#737373] hover:text-[#0A0A0A] dark:hover:text-[#FAFAFA]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center">
-                <Users className="w-5 h-5 mr-2 text-primary" /> {selectedClassForMembers.name} — Members
+              <h2 className="text-base font-bold text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center">
+                <Users className="w-4 h-4 mr-2" /> {selectedClassForMembers.name} — Members
               </h2>
-              <p className="text-xs text-gray-400 mt-0.5">Code: <span className="font-mono text-primary font-bold">{selectedClassForMembers.code}</span></p>
+              <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-0.5">Code: <span className="font-mono font-bold text-[#0A0A0A] dark:text-[#FAFAFA]">{selectedClassForMembers.code}</span></p>
             </div>
 
-            <div className="overflow-y-auto flex-1 pr-1 space-y-3">
+            <div className="overflow-y-auto flex-1 pr-1 space-y-2">
               {isLoadingMembers ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
-                  <span className="text-sm text-gray-400">Loading enrolled students...</span>
+                  <Loader2 className="w-6 h-6 animate-spin text-[#0A0A0A] dark:text-[#FAFAFA] mr-2" />
+                  <span className="text-xs text-[#737373]">Loading enrolled students...</span>
                 </div>
               ) : classMembers.length > 0 ? (
                 classMembers.map((m) => (
-                  <div key={m.id} className="p-3 bg-surface-light border border-white/5 rounded-xl flex items-center justify-between">
+                  <div key={m.id} className="p-3 bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] rounded-lg flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-sm text-white">{m.student_name}</p>
-                      <p className="text-xs text-gray-400">{m.student_email}</p>
+                      <p className="font-semibold text-xs text-[#0A0A0A] dark:text-[#FAFAFA]">{m.student_name}</p>
+                      <p className="text-[11px] text-[#737373] dark:text-[#A3A3A3]">{m.student_email}</p>
                     </div>
-                    <span className="text-[10px] text-gray-500">
+                    <span className="text-[10px] text-[#737373] dark:text-[#A3A3A3]">
                       Joined {new Date(m.joined_at).toLocaleDateString()}
                     </span>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No students have joined this class yet. Share code <span className="font-mono font-bold text-primary">{selectedClassForMembers.code}</span> with your students.
+                <div className="text-center py-8 text-xs text-[#737373]">
+                  No students have joined this class yet. Share code <span className="font-mono font-bold text-[#0A0A0A] dark:text-[#FAFAFA]">{selectedClassForMembers.code}</span> with your students.
                 </div>
               )}
             </div>
 
-            <div className="pt-2 border-t border-white/10 flex justify-end">
+            <div className="pt-2 border-t border-[#E5E5E5] dark:border-[#262626] flex justify-end">
               <Button variant="outline" size="sm" onClick={() => setSelectedClassForMembers(null)}>
                 Close
               </Button>
@@ -596,64 +601,64 @@ export default function TeacherDashboard() {
 
       {/* Upload Material Modal */}
       {selectedClassForUpload && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-surface border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl relative">
             <button
               onClick={() => setSelectedClassForUpload(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-[#737373] hover:text-[#0A0A0A] dark:hover:text-[#FAFAFA]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center">
-                <BookOpen className="w-5 h-5 mr-2 text-primary" /> Class Materials
+              <h2 className="text-base font-bold text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center">
+                <BookOpen className="w-4 h-4 mr-2" /> Class Materials
               </h2>
-              <p className="text-xs text-gray-400 mt-1">
-                Manage materials for <span className="text-white font-semibold">{selectedClassForUpload.name}</span>.
+              <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">
+                Manage materials for <span className="font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">{selectedClassForUpload.name}</span>.
               </p>
             </div>
 
             <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
               {isLoadingMaterials ? (
-                <div className="text-center py-4"><Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" /></div>
+                <div className="text-center py-4"><Loader2 className="w-5 h-5 animate-spin mx-auto text-[#0A0A0A] dark:text-[#FAFAFA]" /></div>
               ) : classMaterials.length > 0 ? (
                 classMaterials.map(m => (
-                  <div key={m.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
+                  <div key={m.id} className="flex items-center justify-between p-3 bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] rounded-lg">
                     <div className="truncate pr-4 flex-1">
-                      <p className="text-sm font-medium text-gray-200 truncate">{m.file_name}</p>
+                      <p className="text-xs font-medium text-[#0A0A0A] dark:text-[#FAFAFA] truncate">{m.file_name}</p>
                     </div>
                     <Button 
-                      variant="danger" 
+                      variant="outline" 
                       size="sm" 
-                      className="px-2" 
+                      className="px-2 h-7" 
                       onClick={() => handleDeleteMaterial(m.id)}
                       disabled={isDeletingMaterial === m.id}
                     >
-                      {isDeletingMaterial === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 text-white" />}
+                      {isDeletingMaterial === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     </Button>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-4 text-xs text-gray-400">No materials uploaded yet.</div>
+                <div className="text-center py-4 text-xs text-[#737373]">No materials uploaded yet.</div>
               )}
             </div>
 
             {uploadError && (
-              <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm rounded-xl">
+              <div className="p-3 bg-[#F5F5F5] dark:bg-[#202020] border border-[#E5E5E5] dark:border-[#262626] text-xs text-[#0A0A0A] dark:text-[#FAFAFA] rounded-md">
                 {uploadError}
               </div>
             )}
 
             {uploadSuccess ? (
-              <div className="p-4 bg-neutral-500/10 border border-neutral-500/30 rounded-xl text-neutral-300 text-center">
-                <Check className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
-                <p className="font-semibold text-sm">Material Uploaded Successfully!</p>
-                <p className="text-xs text-neutral-400/80 mt-1">The document is now available to students and indexed for Ask AI.</p>
+              <div className="p-4 bg-[#F5F5F5] dark:bg-[#202020] border border-[#E5E5E5] dark:border-[#262626] rounded-lg text-center">
+                <Check className="w-6 h-6 mx-auto mb-1 text-[#0A0A0A] dark:text-[#FAFAFA]" />
+                <p className="font-semibold text-xs text-[#0A0A0A] dark:text-[#FAFAFA]">Material Uploaded Successfully</p>
+                <p className="text-[11px] text-[#737373] dark:text-[#A3A3A3] mt-1">The document is now available to students and indexed for Ask AI.</p>
               </div>
             ) : (
-              <form onSubmit={handleUploadSubmit} className="space-y-4">
-                <div className="p-4 border-2 border-dashed border-white/20 rounded-xl bg-black/20 text-center relative hover:border-primary/50 transition-colors">
+              <form onSubmit={handleUploadSubmit} className="space-y-3">
+                <div className="p-5 border border-dashed border-[#E5E5E5] dark:border-[#333333] rounded-lg bg-[#FAFAFA] dark:bg-[#111111] text-center relative hover:border-[#0A0A0A] dark:hover:border-[#FAFAFA] transition-colors">
                   <input
                     type="file"
                     accept=".pdf,.docx,.txt,.md"
@@ -661,18 +666,18 @@ export default function TeacherDashboard() {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     required
                   />
-                  <FileIcon className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                  <FileIcon className="w-6 h-6 text-[#737373] mx-auto mb-2" />
                   {uploadFile ? (
-                    <p className="text-sm font-medium text-primary">{uploadFile.name}</p>
+                    <p className="text-xs font-medium text-[#0A0A0A] dark:text-[#FAFAFA]">{uploadFile.name}</p>
                   ) : (
                     <>
-                      <p className="text-sm text-gray-300 font-medium">Click to select or drag and drop</p>
-                      <p className="text-xs text-gray-500 mt-1">PDF, DOCX, TXT, MD (Max 10MB)</p>
+                      <p className="text-xs text-[#0A0A0A] dark:text-[#FAFAFA] font-medium">Click to select or drag and drop</p>
+                      <p className="text-[10px] text-[#737373] dark:text-[#A3A3A3] mt-0.5">PDF, DOCX, TXT, MD (Max 10MB)</p>
                     </>
                   )}
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2.5 pt-2 border-t border-[#E5E5E5] dark:border-[#262626]">
                   <Button type="button" variant="outline" className="w-full" onClick={() => setSelectedClassForUpload(null)}>
                     Cancel
                   </Button>
@@ -689,32 +694,31 @@ export default function TeacherDashboard() {
 
       {/* Delete Class Confirmation Modal */}
       {classToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-surface border border-neutral-500/30 rounded-2xl max-w-sm w-full p-6 space-y-6 shadow-2xl relative text-center">
-            <div className="mx-auto w-12 h-12 bg-neutral-500/10 rounded-full flex items-center justify-center border border-neutral-500/20 mb-2">
-              <AlertCircle className="w-6 h-6 text-neutral-500" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl max-w-sm w-full p-6 space-y-4 shadow-xl relative text-center">
+            <div className="mx-auto w-10 h-10 bg-[#F5F5F5] dark:bg-[#262626] rounded-full flex items-center justify-center border border-[#E5E5E5] dark:border-[#333333] mb-1">
+              <AlertCircle className="w-5 h-5 text-[#0A0A0A] dark:text-[#FAFAFA]" />
             </div>
             
             <div>
-              <h2 className="text-xl font-bold text-white">Delete Classroom?</h2>
-              <p className="text-sm text-gray-400 mt-2">
-                Are you sure you want to delete <span className="text-white font-semibold">{classToDelete.name}</span>? 
-                This will permanently remove the class and all enrolled students will be kicked out.
+              <h2 className="text-base font-bold text-[#0A0A0A] dark:text-[#FAFAFA]">Delete Classroom?</h2>
+              <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1.5">
+                Are you sure you want to delete <span className="font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">{classToDelete.name}</span>? 
+                This will permanently remove the class and enrolled students.
               </p>
             </div>
 
             {deleteError && (
-              <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm rounded-xl">
+              <div className="p-3 bg-[#F5F5F5] dark:bg-[#202020] border border-[#E5E5E5] dark:border-[#262626] text-xs text-[#0A0A0A] dark:text-[#FAFAFA] rounded-md">
                 {deleteError}
               </div>
             )}
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2.5 pt-2 border-t border-[#E5E5E5] dark:border-[#262626]">
               <Button type="button" variant="outline" className="w-full" onClick={() => setClassToDelete(null)}>
                 Cancel
               </Button>
               <Button 
-                variant="danger" 
                 className="w-full" 
                 onClick={handleDeleteClass}
                 disabled={isDeleting}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
+import { Card, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import {
@@ -128,42 +128,42 @@ export default function StudentRegistryManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E5E5E5] dark:border-[#262626]">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
-            <GraduationCap className="w-7 h-7 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center gap-2.5">
+            <GraduationCap className="w-6 h-6 text-[#0A0A0A] dark:text-[#FAFAFA]" />
             Institutional Student Registry
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">
             Pre-authorize eligible students. Students cannot create accounts unless their roll number and email are enrolled here.
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2">
+        <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 self-start sm:self-auto">
           <Plus className="w-4 h-4" />
           Enroll Student
         </Button>
       </div>
 
       {/* Filter and Search Bar */}
-      <Card className="border-white/5 bg-surface/60">
+      <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626]">
         <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-96">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#737373] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by name, roll no, or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-surface-light border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+              className="w-full bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] rounded-md pl-10 pr-4 py-2 text-xs text-[#0A0A0A] dark:text-[#FAFAFA] placeholder:text-[#A3A3A3] focus:outline-none focus:border-[#0A0A0A] dark:focus:border-[#FAFAFA] transition-colors"
             />
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <Filter className="w-4 h-4 text-gray-400 shrink-0" />
+            <Filter className="w-3.5 h-3.5 text-[#737373] shrink-0" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-surface-light border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+              className="bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] rounded-md px-3 py-2 text-xs text-[#0A0A0A] dark:text-[#FAFAFA] focus:outline-none focus:border-[#0A0A0A] dark:focus:border-[#FAFAFA]"
             >
               <option value="all">All Statuses ({students.length})</option>
               <option value="registered">Registered</option>
@@ -175,77 +175,77 @@ export default function StudentRegistryManager() {
       </Card>
 
       {/* Table Card */}
-      <Card className="border-white/5 bg-surface/60">
+      <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           {isLoading ? (
             <div className="flex items-center justify-center p-12">
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <Loader2 className="w-6 h-6 text-[#0A0A0A] dark:text-[#FAFAFA] animate-spin" />
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 text-sm">
+            <div className="p-12 text-center text-[#737373] text-xs">
               No students found matching current filters.
             </div>
           ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="bg-surface-light/50 border-b border-white/5 text-gray-400 text-xs uppercase font-medium">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#F5F5F5] dark:bg-[#202020] border-b border-[#E5E5E5] dark:border-[#262626] text-[#737373] dark:text-[#A3A3A3] uppercase tracking-wider font-semibold">
                 <tr>
-                  <th className="px-6 py-4">Student ID / Roll No</th>
-                  <th className="px-6 py-4">Full Name</th>
-                  <th className="px-6 py-4">Official Email</th>
-                  <th className="px-6 py-4">Batch / Semester</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-5 py-3.5">Student ID / Roll No</th>
+                  <th className="px-5 py-3.5">Full Name</th>
+                  <th className="px-5 py-3.5">Official Email</th>
+                  <th className="px-5 py-3.5">Batch / Semester</th>
+                  <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#262626]">
                 {filteredStudents.map((student) => (
-                  <tr key={student.id} className="hover:bg-white/[0.02]">
-                    <td className="px-6 py-4 font-mono font-medium text-white">
+                  <tr key={student.id} className="hover:bg-[#F5F5F5]/60 dark:hover:bg-[#202020]/60 transition-colors">
+                    <td className="px-5 py-3.5 font-mono font-medium text-[#0A0A0A] dark:text-[#FAFAFA]">
                       {student.student_identifier}
                     </td>
-                    <td className="px-6 py-4 text-gray-200 font-medium">{student.full_name}</td>
-                    <td className="px-6 py-4 text-gray-400">{student.official_email}</td>
-                    <td className="px-6 py-4 text-gray-400 text-xs">
+                    <td className="px-5 py-3.5 text-[#0A0A0A] dark:text-[#FAFAFA] font-medium">
+                      {student.full_name}
+                    </td>
+                    <td className="px-5 py-3.5 text-[#737373] dark:text-[#A3A3A3]">
+                      {student.official_email}
+                    </td>
+                    <td className="px-5 py-3.5 text-[#737373] dark:text-[#A3A3A3]">
                       {student.batch_year || '—'}{' '}
                       {student.current_semester ? `(Sem ${student.current_semester})` : ''}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3.5">
                       {student.status === 'registered' ? (
-                        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-neutral-500/10 text-neutral-400 border border-neutral-500/20 font-medium">
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md bg-[#0A0A0A] text-white dark:bg-[#FAFAFA] dark:text-[#0A0A0A] font-medium">
                           <CheckCircle2 className="w-3 h-3" />
                           Registered
                         </span>
                       ) : student.status === 'active' ? (
-                        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-neutral-500/10 text-neutral-400 border border-neutral-500/20 font-medium">
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md bg-[#F5F5F5] dark:bg-[#262626] text-[#525252] dark:text-[#A3A3A3] border border-[#E5E5E5] dark:border-[#333333] font-medium">
                           <Clock className="w-3 h-3" />
                           Pending Sign-Up
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-neutral-500/10 text-neutral-400 border border-neutral-500/20 font-medium">
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-md text-[#737373] border border-[#E5E5E5] dark:border-[#262626] font-medium">
                           Inactive
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-5 py-3.5 text-right">
                       {student.status !== 'registered' && (
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => handleToggleStatus(student)}
-                          className={`text-xs ${
-                            student.status === 'inactive'
-                              ? 'text-neutral-400 hover:text-neutral-300'
-                              : 'text-neutral-400 hover:text-neutral-300'
-                          }`}
+                          className="text-xs h-7 px-2.5"
                         >
                           {student.status === 'inactive' ? (
                             <>
-                              <UserCheck className="w-3.5 h-3.5 mr-1" />
+                              <UserCheck className="w-3 h-3 mr-1" />
                               Activate
                             </>
                           ) : (
                             <>
-                              <UserX className="w-3.5 h-3.5 mr-1" />
+                              <UserX className="w-3 h-3 mr-1" />
                               Deactivate
                             </>
                           )}
@@ -262,25 +262,25 @@ export default function StudentRegistryManager() {
 
       {/* Add Student Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-white/10 rounded-2xl w-full max-w-lg p-6 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl w-full max-w-lg p-6 relative shadow-xl">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-[#737373] hover:text-[#0A0A0A] dark:hover:text-[#FAFAFA]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-bold text-[#0A0A0A] dark:text-[#FAFAFA] mb-1 flex items-center gap-2">
+              <Plus className="w-4 h-4" />
               Enroll Student to Registry
             </h2>
-            <p className="text-xs text-gray-400 mb-5">
+            <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mb-5">
               The student will be able to register an account using this Roll Number and Email.
             </p>
 
             {formError && (
-              <div className="mb-4 p-3 text-xs bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 rounded-xl flex items-center gap-2">
+              <div className="mb-4 p-3 text-xs bg-[#F5F5F5] dark:bg-[#202020] border border-[#E5E5E5] dark:border-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] rounded-md flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
@@ -313,28 +313,27 @@ export default function StudentRegistryManager() {
                 required
               />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-300">Department</label>
-                  <select
-                    className="w-full bg-surface-light border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
-                    value={formData.department_id || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        department_id: e.target.value ? Number(e.target.value) : undefined,
-                      })
-                    }
-                  >
-                    <option value="">Select Department</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">
+                  Department
+                </label>
+                <select
+                  className="w-full bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] rounded-md px-3 py-2 text-xs text-[#0A0A0A] dark:text-[#FAFAFA] focus:outline-none focus:border-[#0A0A0A] dark:focus:border-[#FAFAFA]"
+                  value={formData.department_id || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      department_id: e.target.value ? Number(e.target.value) : undefined,
+                    })
+                  }
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -352,10 +351,10 @@ export default function StudentRegistryManager() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#E5E5E5] dark:border-[#262626]">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => setIsModalOpen(false)}
                 >
                   Cancel

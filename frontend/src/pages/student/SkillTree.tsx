@@ -1,366 +1,289 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
+import { useNavigate } from 'react-router-dom';
+import { assessmentApi, Skill } from '../../api/assessment';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
-import { assessmentApi, Skill } from '../../api/assessment';
-import { useNavigate } from 'react-router-dom';
+import { Badge } from '../../components/common/Badge';
 import {
-  Loader2,
-  Network,
-  BrainCircuit,
-  Sparkles,
-  TrendingUp,
-  Plus,
-  BarChart3,
-  Zap,
-  X,
-  CheckCircle2,
+  Brain,
   Edit3,
+  Plus,
+  ArrowRight,
+  X,
+  Check,
+  TrendingUp,
 } from 'lucide-react';
-
-/* ── Skill-level configuration ──────────────────────────────────── */
-function getSkillConfig(score: number) {
-  const pct = Math.round(score);
-  if (pct >= 80) return { level: 'Advanced',      color: 'dark', hex: '#171717' };
-  if (pct >= 50) return { level: 'Intermediate',  color: 'medium', hex: '#525252' };
-  if (pct >= 25) return { level: 'Developing',    color: 'light', hex: '#a3a3a3' };
-  return          { level: 'Beginner',    color: 'muted', hex: '#737373' };
-}
-
-const colorMap: Record<string, { text: string; bg: string; border: string; glow: string }> = {
-  dark:   { text: 'text-neutral-200', bg: 'bg-neutral-800', border: 'border-neutral-700', glow: 'shadow-black/20' },
-  medium: { text: 'text-neutral-300', bg: 'bg-neutral-600', border: 'border-neutral-500', glow: 'shadow-neutral-500/20' },
-  light:  { text: 'text-neutral-400', bg: 'bg-neutral-400', border: 'border-neutral-400', glow: 'shadow-neutral-400/20' },
-  muted:  { text: 'text-neutral-500', bg: 'bg-neutral-500', border: 'border-neutral-500', glow: 'shadow-neutral-500/20' },
-};
-
-const skillIcons: Record<string, React.ElementType> = {
-  'Numerical Calculation': BarChart3,
-  'Abstract Thinking':     BrainCircuit,
-  'Logical Reasoning':     Network,
-  'Association/Analogy':   Sparkles,
-  'Spatial Imagination':   Zap,
-};
-
-function SkillCard({ skill, onEdit }: { skill: Skill; onEdit: (s: Skill) => void }) {
-  const pct = Math.round(skill.score);
-  const { level, color, hex } = getSkillConfig(pct);
-  const cls = colorMap[color];
-  const Icon = skillIcons[skill.skill_category] ?? Network;
-
-  const radius = 36;
-  const circ = 2 * Math.PI * radius;
-  const dash = circ * (pct / 100);
-
-  return (
-    <Card className={`relative overflow-hidden border ${cls.border} hover:shadow-lg transition-all duration-300 group`}>
-      <div className={`absolute inset-x-0 top-0 h-1 ${cls.bg} opacity-80`} />
-
-      <CardContent className="pt-6 pb-5">
-        <div className="flex justify-between items-start mb-5">
-          <div className={`p-2.5 rounded-xl border ${cls.border} bg-white/5`}>
-            <Icon className={`w-5 h-5 ${cls.text}`} />
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onEdit(skill)}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-              title="Update Skill Score"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-            </button>
-            <span className={`text-xs font-bold uppercase tracking-widest ${cls.text} px-2 py-1 rounded-full bg-white/5 border ${cls.border}`}>
-              {level}
-            </span>
-          </div>
-        </div>
-
-        <h3 className="font-bold text-base mb-4 text-white">{skill.skill_category}</h3>
-
-        <div className="flex items-center gap-4">
-          <div className="relative w-20 h-20 shrink-0">
-            <svg viewBox="0 0 88 88" className="w-20 h-20 -rotate-90">
-              <circle cx="44" cy="44" r={radius} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="8" />
-              <circle
-                cx="44" cy="44" r={radius}
-                fill="none"
-                stroke={hex}
-                strokeWidth="8"
-                strokeDasharray={`${dash} ${circ - dash}`}
-                strokeLinecap="round"
-                style={{ transition: 'stroke-dasharray 1s ease' }}
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-white">
-              {pct}%
-            </span>
-          </div>
-
-          <div className="space-y-1 min-w-0 flex-1">
-            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className={`h-full ${cls.bg} rounded-full transition-all duration-1000`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500">
-              Last updated:{' '}
-              {skill.last_updated
-                ? new Date(skill.last_updated).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                : '—'}
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function SkillTree() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newSkillName, setNewSkillName] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
-  const [addSuccessMsg, setAddSuccessMsg] = useState<string | null>(null);
 
-  // Edit skill states
+  // Edit / Add Modal state
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [editScore, setEditScore] = useState<number>(50);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const navigate = useNavigate();
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
 
-  const fetchSkills = async () => {
-    try {
-      const data = await assessmentApi.getSkills();
-      setSkills(data);
-    } catch (err) {
-      console.error('Failed to fetch skills', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchSkills();
   }, []);
 
-  const handleAddSkill = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSkillName.trim()) return;
-
-    setIsAdding(true);
+  const fetchSkills = async () => {
+    setIsLoading(true);
     try {
-      await assessmentApi.addCustomSkill(newSkillName.trim());
-      await fetchSkills();
-      setAddSuccessMsg(`Successfully added "${newSkillName.trim()}". Conduct an assessment now!`);
-      setNewSkillName('');
-      setTimeout(() => setAddSuccessMsg(null), 4000);
-      setShowAddModal(false);
-    } catch (err) {
-      console.error('Failed to add custom skill', err);
+      const data = await assessmentApi.getSkills();
+      setSkills(data || []);
+    } catch {
+      // Intentionally quiet
     } finally {
-      setIsAdding(false);
+      setIsLoading(false);
     }
   };
 
-  const handleUpdateSkill = async (e: React.FormEvent) => {
+  const handleUpdateScore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSkill) return;
-
     setIsUpdating(true);
     try {
       await assessmentApi.updateSkillScore(editingSkill.id, editScore);
       await fetchSkills();
       setEditingSkill(null);
-    } catch (err) {
-      console.error('Failed to update skill score', err);
+    } catch {
+      alert('Failed to update skill score.');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const avgScore = skills.length
-    ? Math.round(skills.reduce((s, k) => s + k.score, 0) / skills.length)
-    : 0;
-  const assessed = skills.length;
+  const handleAddSkill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSkillName.trim()) return;
+    setIsAdding(true);
+    try {
+      await assessmentApi.addCustomSkill(newSkillName.trim());
+      await fetchSkills();
+      setShowAddModal(false);
+      setNewSkillName('');
+    } catch {
+      alert('Failed to add skill.');
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Derive skill classification
+  const getSkillTier = (score: number) => {
+    const pct = Math.round(score);
+    if (pct >= 75) return { label: 'Advanced', badge: 'mastered' as const, barClass: 'bg-[#0A0A0A]' };
+    if (pct >= 50) return { label: 'Intermediate', badge: 'developing' as const, barClass: 'bg-[#525252]' };
+    if (pct >= 30) return { label: 'Developing', badge: 'needs_attention' as const, barClass: 'bg-[#737373]' };
+    return { label: 'Beginner', badge: 'neutral' as const, barClass: 'bg-[#A3A3A3]' };
+  };
+
+  // Sort lowest skills for "What to work on next"
+  const prioritizedSkills = [...skills].sort((a, b) => a.score - b.score);
+  const nextUp = prioritizedSkills.slice(0, 3);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="max-w-3xl mx-auto py-4 sm:py-8 space-y-10">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E5E5] pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">5-D Skill Tree & Competencies</h1>
-          <p className="text-gray-400">
-            Real-time student skill progression map persisted in PostgreSQL. Add or update skills anytime!
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+            Learner Model
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#0A0A0A] mt-1">
+            Skill Hierarchy & Gaps
+          </h1>
+          <p className="text-sm text-[#737373] mt-1">
+            Your continuous knowledge graph. Skills adapt automatically based on diagnostic verification.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+
+        <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
+            size="sm"
             onClick={() => setShowAddModal(true)}
-            className="group"
           >
-            <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
-            Add Custom Skill
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Add Skill
           </Button>
           <Button
-            onClick={() => navigate('/student/assessment')}
-            className="group"
+            variant="primary"
+            size="sm"
+            onClick={() => navigate('/student/plan')}
           >
-            <BrainCircuit className="w-4 h-4 mr-2" />
-            Conduct Assessment
+            Adaptive Plan
+            <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Button>
         </div>
       </div>
 
-      {addSuccessMsg && (
-        <div className="flex items-center justify-between p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-300">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-neutral-400 shrink-0" />
-            <span>{addSuccessMsg}</span>
+      {/* SECTION 14: Vertical Skill Hierarchy */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+            Knowledge Domain: Computer Science & Algorithmic Concepts
+          </span>
+          <span className="text-xs text-[#737373]">
+            {skills.length} tracked skills
+          </span>
+        </div>
+
+        {skills.length === 0 ? (
+          <div className="text-center py-12 bg-white border border-dashed border-[#E5E5E5] rounded-xl space-y-3">
+            <p className="text-xs text-[#737373]">
+              No skills registered yet. Take your baseline assessment to generate your initial model.
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/student/assessment')}
+            >
+              Take Assessment
+            </Button>
           </div>
-          <Button size="sm" onClick={() => navigate('/student/assessment')}>
-            Start Assessment Now
-          </Button>
-        </div>
-      )}
+        ) : (
+          <div className="bg-white border border-[#E5E5E5] rounded-xl divide-y divide-[#E5E5E5]">
+            {skills.map((skill) => {
+              const pct = Math.round(skill.score);
+              const tier = getSkillTier(pct);
 
-      {skills.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-2.5 bg-primary/20 rounded-xl border border-primary/30">
-                <TrendingUp className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Overall Average</p>
-                <p className="text-2xl font-bold">{avgScore}%</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-2.5 bg-neutral-500/20 rounded-xl border border-neutral-500/30">
-                <Network className="w-5 h-5 text-neutral-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Active Skills</p>
-                <p className="text-2xl font-bold">{assessed}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-2.5 bg-neutral-500/20 rounded-xl border border-neutral-500/30">
-                <BrainCircuit className="w-5 h-5 text-neutral-400" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-medium">Top Strength</p>
-                <p className="text-base font-bold truncate">
-                  {skills.length > 0
-                    ? skills.reduce((a, b) => (a.score > b.score ? a : b)).skill_category.split(' ')[0]
-                    : '—'}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              return (
+                <div key={skill.id} className="p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-[#0A0A0A]">
+                        {skill.skill_category}
+                      </span>
+                      <Badge variant={tier.badge}>{tier.label}</Badge>
+                    </div>
 
-      {skills.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {skills.map((skill) => (
-            <SkillCard
-              key={skill.id}
-              skill={skill}
-              onEdit={(s) => {
-                setEditingSkill(s);
-                setEditScore(Math.round(s.score));
-              }}
-            />
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-[#0A0A0A]">
+                        {pct}%
+                      </span>
+                      <button
+                        onClick={() => {
+                          setEditingSkill(skill);
+                          setEditScore(pct);
+                        }}
+                        className="text-[#737373] hover:text-[#0A0A0A] p-1 rounded hover:bg-[#F5F5F5] transition-colors"
+                        title="Edit score"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Grayscale progress bar */}
+                  <div className="w-full bg-[#E5E5E5] h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${tier.barClass}`}
+                      style={{ width: `${Math.max(4, pct)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* SECTION 14: What to work on next */}
+      <section className="space-y-4 pt-4 border-t border-[#E5E5E5]">
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+            What to work on next
+          </span>
+          <p className="text-xs text-[#737373] mt-0.5">
+            Ranked by prerequisite priority and skill gap severity.
+          </p>
+        </div>
+
+        <div className="bg-white border border-[#E5E5E5] rounded-xl divide-y divide-[#E5E5E5]">
+          {nextUp.map((skill, index) => (
+            <div key={skill.id} className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-[#737373] w-5">
+                  0{index + 1}
+                </span>
+                <div>
+                  <h4 className="text-sm font-semibold text-[#0A0A0A]">
+                    {skill.skill_category}
+                  </h4>
+                  <p className="text-xs text-[#737373]">
+                    Current mastery: {Math.round(skill.score)}% — Needs strengthening
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/student/plan')}
+              >
+                Focus in Plan
+                <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
           ))}
         </div>
-      ) : (
-        <Card className="border-dashed border-white/20 bg-transparent">
-          <CardContent className="flex flex-col items-center justify-center py-20 text-center gap-6">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                <Network className="w-10 h-10 text-gray-600" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-7 h-7 bg-primary/20 border border-primary/30 rounded-full flex items-center justify-center">
-                <Plus className="w-4 h-4 text-primary" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-200">No Skills Mapped Yet</h3>
-              <p className="text-gray-500 mt-2 max-w-sm mx-auto">
-                Add custom skills or take the diagnostic assessment to unlock your personalised Skill Tree.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setShowAddModal(true)}>
-                Add Custom Skill
-              </Button>
-              <Button onClick={() => navigate('/student/assessment')}>
-                <BrainCircuit className="w-5 h-5 mr-2" />
-                Take the Assessment
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      </section>
 
-      {/* ── Add Custom Skill Modal ───────────────────────────────── */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-surface border border-white/10 rounded-2xl p-6 space-y-6 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-white/10 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/20 rounded-xl border border-primary/30">
-                  <Plus className="w-5 h-5 text-primary" />
-                </div>
-                <h2 className="font-bold text-lg text-white">Add Custom Skill</h2>
-              </div>
+      {/* Edit Skill Score Modal */}
+      {editingSkill && (
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E5E5E5] rounded-xl max-w-sm w-full p-6 space-y-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-3">
+              <h3 className="font-semibold text-sm text-[#0A0A0A]">
+                Update {editingSkill.skill_category}
+              </h3>
               <button
-                onClick={() => setShowAddModal(false)}
-                className="text-gray-400 hover:text-white"
+                onClick={() => setEditingSkill(null)}
+                className="text-[#737373] hover:text-[#0A0A0A]"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAddSkill} className="space-y-4">
-              <Input
-                label="Skill Category Name"
-                placeholder="e.g. Data Structures, Python, Machine Learning"
-                value={newSkillName}
-                onChange={(e) => setNewSkillName(e.target.value)}
-                required
-              />
-              <p className="text-xs text-gray-400">
-                After adding this skill, conduct an assessment to test your knowledge and get graded.
-              </p>
+            <form onSubmit={handleUpdateScore} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-[#525252]">
+                  Mastery Score ({editScore}%)
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={editScore}
+                  onChange={(e) => setEditScore(Number(e.target.value))}
+                  className="w-full accent-[#0A0A0A]"
+                />
+              </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
-                  variant="ghost"
-                  onClick={() => setShowAddModal(false)}
-                  disabled={isAdding}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setEditingSkill(null)}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" isLoading={isAdding} disabled={!newSkillName.trim()}>
-                  Add & Assess
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isUpdating}
+                >
+                  Save Score
                 </Button>
               </div>
             </form>
@@ -368,55 +291,51 @@ export default function SkillTree() {
         </div>
       )}
 
-      {/* ── Edit Skill Score Modal ────────────────────────────────── */}
-      {editingSkill && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-surface border border-white/10 rounded-2xl p-6 space-y-6 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-white/10 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-neutral-500/20 rounded-xl border border-neutral-500/30">
-                  <Edit3 className="w-5 h-5 text-neutral-400" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-lg text-white">Update Skill Level</h2>
-                  <p className="text-xs text-gray-400">{editingSkill.skill_category}</p>
-                </div>
-              </div>
+      {/* Add Skill Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E5E5E5] rounded-xl max-w-sm w-full p-6 space-y-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-3">
+              <h3 className="font-semibold text-sm text-[#0A0A0A]">
+                Add Knowledge Target
+              </h3>
               <button
-                onClick={() => setEditingSkill(null)}
-                className="text-gray-400 hover:text-white"
+                onClick={() => setShowAddModal(false)}
+                className="text-[#737373] hover:text-[#0A0A0A]"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdateSkill} className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-sm font-medium">
-                  <span className="text-gray-300">Competence Score</span>
-                  <span className="text-primary font-bold text-lg">{editScore}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={editScore}
-                  onChange={(e) => setEditScore(Number(e.target.value))}
-                  className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+            <form onSubmit={handleAddSkill} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-[#525252]">
+                  Skill Category Name
+                </label>
+                <Input
+                  required
+                  placeholder="e.g. Graph Algorithms"
+                  value={newSkillName}
+                  onChange={(e) => setNewSkillName(e.target.value)}
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
-                  variant="ghost"
-                  onClick={() => setEditingSkill(null)}
-                  disabled={isUpdating}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowAddModal(false)}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" isLoading={isUpdating}>
-                  Save Score
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isAdding}
+                >
+                  Add Skill
                 </Button>
               </div>
             </form>

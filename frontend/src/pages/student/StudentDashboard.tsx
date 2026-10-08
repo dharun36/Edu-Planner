@@ -1,69 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { Input } from '../../components/common/Input';
-import { useAuth } from '../../components/auth/AuthProvider';
-import {
-  Flame,
-  CheckCircle2,
-  TrendingUp,
-  Sparkles,
-  Loader2,
-  BookOpen,
-  AlertCircle,
-  UserCircle2,
-  X,
-  Award,
-  School,
-  Plus,
-  LogOut,
-  Check,
-} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../components/auth/AuthProvider';
+import { Button } from '../../components/common/Button';
+import { ProgressBar } from '../../components/common/ProgressBar';
+import { Badge } from '../../components/common/Badge';
 import {
   learningPlansApi,
   LearningPlan,
-  VerificationQuestion,
-  VerificationSubmitResult,
+  LearningTask,
+  LearningModule,
 } from '../../api/learningPlans';
+import { skillsApi, SkillScore } from '../../api/skills';
 import { progressApi, StudentProgressSummary } from '../../api/progress';
-import { classroomApi, Classroom } from '../../api/classroom';
-import { skillsApi, SkillScores } from '../../api/skills';
-
-function getProfileCompletion(user: any): number {
-  const fields = ['phone', 'department', 'year_of_study', 'bio', 'college', 'regulation', 'semester'];
-  const filled = fields.filter((f) => !!user?.[f]);
-  return Math.round((filled.length / fields.length) * 100);
-}
+import {
+  ArrowRight,
+  Target,
+  Sparkles,
+  BookOpen,
+  Check,
+  ChevronRight,
+  Brain,
+  Layers,
+} from 'lucide-react';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [activePlan, setActivePlan] = useState<LearningPlan | null>(null);
+  const [skills, setSkills] = useState<SkillScore[]>([]);
   const [progressSummary, setProgressSummary] = useState<StudentProgressSummary | null>(null);
-  const [studentClasses, setStudentClasses] = useState<Classroom[]>([]);
-  const [skillScores, setSkillScores] = useState<SkillScores | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [completingTaskId, setCompletingTaskId] = useState<number | null>(null);
-
-  // Verification 5-MCQ test states
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [verifyQuestions, setVerifyQuestions] = useState<VerificationQuestion[]>([]);
-  const [verifyAnswers, setVerifyAnswers] = useState<Record<number, string>>({});
-  const [isLoadingVerify, setIsLoadingVerify] = useState(false);
-  const [isSubmittingVerify, setIsSubmittingVerify] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<VerificationSubmitResult | null>(null);
-
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-
-  // Join Class Modal states
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  const [joinCode, setJoinCode] = useState('');
-  const [joinError, setJoinError] = useState('');
-  const [isJoining, setIsJoining] = useState(false);
-  const [joinSuccessMsg, setJoinSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -71,631 +38,325 @@ export default function StudentDashboard() {
 
   const loadDashboardData = async () => {
     setIsLoading(true);
-    setError(null);
     try {
-      const [planRes, summaryRes, classRes, skillsRes] = await Promise.allSettled([
+      const [planRes, skillsRes, summaryRes] = await Promise.allSettled([
         learningPlansApi.getActivePlan(),
+        skillsApi.getRawSkills(),
         progressApi.getSummary(),
-        classroomApi.getStudentClasses(),
-        skillsApi.getSkills(),
       ]);
 
       if (planRes.status === 'fulfilled') {
         setActivePlan(planRes.value);
-      } else {
-        setActivePlan(null);
       }
-
+      if (skillsRes.status === 'fulfilled') {
+        setSkills(skillsRes.value || []);
+      }
       if (summaryRes.status === 'fulfilled') {
         setProgressSummary(summaryRes.value);
       }
-
-      if (classRes.status === 'fulfilled') {
-        setStudentClasses(classRes.value);
-      }
-
-      if (skillsRes.status === 'fulfilled') {
-        setSkillScores(skillsRes.value);
-      }
     } catch {
-      setError('Failed to load dashboard data.');
+      // Keep state intact
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCompleteTask = async (taskId: number) => {
-    setCompletingTaskId(taskId);
-    try {
-      await learningPlansApi.completeTask(taskId);
-      await loadDashboardData();
-    } catch {
-      alert('Failed to complete task');
-    } finally {
-      setCompletingTaskId(null);
-    }
-  };
+  // Compute greeting based on local time
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const firstName = user?.full_name?.split(' ')[0] || 'Student';
 
-  const handleStartVerification = async () => {
-    if (!activePlan) return;
-    setIsLoadingVerify(true);
-    setVerifyResult(null);
-    setVerifyAnswers({});
-    setShowVerifyModal(true);
-    try {
-      const qList = await learningPlansApi.getVerificationQuestions(activePlan.id);
-      setVerifyQuestions(qList);
-    } catch {
-      alert('Failed to load verification test questions.');
-      setShowVerifyModal(false);
-    } finally {
-      setIsLoadingVerify(false);
-    }
-  };
+  // Compute active task / module
+  let currentModule: LearningModule | null = null;
+  let currentTask: LearningTask | null = null;
+  let moduleIndex = 1;
+  let totalModules = 1;
+  let totalTasks = 0;
+  let completedTasks = 0;
 
-  const handleSubmitVerification = async () => {
-    if (!activePlan) return;
-    setIsSubmittingVerify(true);
-    try {
-      const payload = Object.entries(verifyAnswers).map(([qId, option]) => ({
-        question_id: Number(qId),
-        selected_option: option,
-      }));
-      const res = await learningPlansApi.submitVerificationTest(activePlan.id, payload);
-      setVerifyResult(res);
-      if (res.passed) {
-        await loadDashboardData();
+  if (activePlan && activePlan.modules) {
+    totalModules = activePlan.modules.length;
+    for (let i = 0; i < activePlan.modules.length; i++) {
+      const mod = activePlan.modules[i];
+      for (const t of mod.tasks || []) {
+        totalTasks++;
+        if (t.is_completed) {
+          completedTasks++;
+        } else if (!currentTask) {
+          currentTask = t;
+          currentModule = mod;
+          moduleIndex = i + 1;
+        }
       }
-    } catch {
-      alert('Failed to submit verification test.');
-    } finally {
-      setIsSubmittingVerify(false);
     }
-  };
-
-  const handleJoinClassSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!joinCode.trim()) return;
-    setIsJoining(true);
-    setJoinError('');
-    setJoinSuccessMsg(null);
-    try {
-      const joinedCls = await classroomApi.joinClass({ code: joinCode.trim() });
-      setStudentClasses((prev) => [joinedCls, ...prev]);
-      setShowJoinModal(false);
-      setJoinCode('');
-      navigate(`/student/classroom/${joinedCls.id}`);
-    } catch (err: any) {
-      setJoinError(err.response?.data?.detail || 'Failed to join class. Please check your code.');
-    } finally {
-      setIsJoining(false);
+    // If all tasks are completed, pick the last module
+    if (!currentTask && activePlan.modules.length > 0) {
+      currentModule = activePlan.modules[activePlan.modules.length - 1];
+      moduleIndex = activePlan.modules.length;
     }
-  };
-
-  const handleLeaveClass = async (e: React.MouseEvent, classId: number, className: string) => {
-    e.stopPropagation();
-    if (!window.confirm(`Are you sure you want to leave ${className}?`)) return;
-    try {
-      await classroomApi.leaveClass(classId);
-      setStudentClasses((prev) => prev.filter((c) => c.id !== classId));
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to leave class.');
-    }
-  };
-
-  // Calculate Plan Progress
-  let totalPlanTasks = 0;
-  let completedPlanTasks = 0;
-  if (activePlan) {
-    activePlan.modules.forEach((m) => {
-      m.tasks.forEach((t) => {
-        totalPlanTasks++;
-        if (t.is_completed) completedPlanTasks++;
-      });
-    });
   }
-  const progressPercent = totalPlanTasks > 0 ? Math.round((completedPlanTasks / totalPlanTasks) * 100) : 0;
-  const profileCompletion = getProfileCompletion(user);
+
+  // Calculate overall mastery
+  const avgSkillScore =
+    skills.length > 0
+      ? Math.round(skills.reduce((acc, s) => acc + s.score, 0) / skills.length)
+      : progressSummary?.average_skill_score ?? 60;
+
+  // Recommended next step: find lowest skill or fallback
+  const lowestSkill =
+    skills.length > 0
+      ? [...skills].sort((a, b) => a.score - b.score)[0]
+      : null;
+
+  const currentTopic = activePlan?.topic || user?.learning_topic || 'Data Structures & Algorithms';
 
   return (
-    <div className="space-y-6">
-      {/* Profile Completion Nudge Banner */}
-      {!bannerDismissed && profileCompletion < 100 && (
-        <div className="relative p-4 rounded-xl bg-gradient-to-r from-primary/20 via-neutral-500/20 to-neutral-500/20 border border-primary/30 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/20 text-primary rounded-xl shrink-0">
-              <UserCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-gray-200">
-                Your profile is <span className="text-primary font-bold">{profileCompletion}% complete</span>
-              </p>
-              <p className="text-xs text-gray-400">Complete your academic details to receive maximum personalized learning plans.</p>
-            </div>
+    <div className="max-w-3xl mx-auto py-2 sm:py-6 space-y-10">
+      {/* 1. Greeting & Page Header */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#0A0A0A]">
+          {greeting}, {firstName}
+        </h1>
+        <p className="text-sm text-[#737373] mt-1">
+          Here is your current adaptive learning standing and next milestone.
+        </p>
+      </div>
+
+      {/* 2. Your Current Goal */}
+      <section className="space-y-4 pt-2">
+        <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+            Your current goal
+          </span>
+          {activePlan && (
+            <Badge variant="developing">
+              Path in progress
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#0A0A0A]">
+              {currentTopic}
+            </h2>
+            <p className="text-sm text-[#737373]">
+              {activePlan?.learning_goal ||
+                user?.learning_goal ||
+                'Personalized adaptive learning path configured for foundational mastery.'}
+            </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button size="sm" onClick={() => navigate('/student/profile')} className="text-xs">
-              Complete Profile
-            </Button>
-            <button onClick={() => setBannerDismissed(true)} className="p-1 text-gray-400 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
+
+          <div className="shrink-0">
+            {currentTask ? (
+              <Button
+                variant="primary"
+                onClick={() => navigate(`/student/learn/${currentTask?.id}`)}
+              >
+                Continue Learning
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            ) : activePlan ? (
+              <Button
+                variant="primary"
+                onClick={() => navigate('/student/plan')}
+              >
+                View Learning Path
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => navigate('/student/goal')}
+              >
+                Set Learning Goal
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            )}
           </div>
         </div>
-      )}
+      </section>
 
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Student Dashboard</h1>
-        <p className="text-gray-400">Welcome back, {user?.full_name}. Real data calculated directly from your database records.</p>
-      </div>
+      {/* 3. Current Progress */}
+      <section className="space-y-3 pt-4 border-t border-[#E5E5E5]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+            Current Progress
+          </span>
+          <span className="text-xs text-[#737373]">
+            {totalTasks > 0 ? `${completedTasks} of ${totalTasks} tasks completed` : 'Assessment initialized'}
+          </span>
+        </div>
 
-      {/* Top Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
-              <Flame className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-400">Current Streak</p>
-              <p className="text-2xl font-bold">{progressSummary?.streak_days ?? 0} Days</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-baseline gap-3">
+          <span className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#0A0A0A]">
+            {avgSkillScore}%
+          </span>
+          <span className="text-sm text-[#737373]">Overall mastery</span>
+        </div>
 
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-400">Plans Completed</p>
-              <p className="text-2xl font-bold">{progressSummary?.plans_completed ?? 0}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <ProgressBar value={avgSkillScore} size="md" variant="adaptive" />
+      </section>
 
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-400">Tasks Done</p>
-              <p className="text-2xl font-bold">
-                {progressSummary?.completed_tasks ?? 0}/{progressSummary?.total_tasks ?? 0}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-neutral-500/20 text-neutral-400 rounded-2xl border border-neutral-500/30">
-              <Award className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-400">Plan Status</p>
-              <p className="text-lg font-bold capitalize">
-                {activePlan?.status === 'completed' ? 'Verified 🎉' : activePlan ? 'In Progress' : 'No Active Plan'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* My Classes Section */}
-      <Card className="border-primary/20 bg-surface">
-        <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5">
-          <div>
-            <CardTitle className="text-xl flex items-center">
-              <School className="w-5 h-5 mr-2 text-primary" /> My Classes
-            </CardTitle>
-            <p className="text-xs text-gray-400 mt-1">Click any enrolled classroom to access its materials, skills, and AI learning plan.</p>
-          </div>
-          <Button
-            onClick={() => {
-              setShowJoinModal(true);
-              setJoinError('');
-              setJoinSuccessMsg(null);
-              setJoinCode('');
-            }}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Join Class
-          </Button>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {studentClasses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {studentClasses.map((cls) => (
-                <div
-                  key={cls.id}
-                  onClick={() => navigate(`/student/classroom/${cls.id}`)}
-                  className="p-5 rounded-2xl bg-surface-light border border-white/10 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer flex flex-col justify-between space-y-4 group"
-                >
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-lg text-white group-hover:text-primary transition-colors">{cls.name}</h3>
-                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                        {cls.code}
-                      </span>
-                    </div>
-
-                    <p className="text-xs font-semibold text-gray-300 mb-2">
-                      Instructor: <span className="text-primary">{cls.teacher_name || 'Instructor'}</span>
-                    </p>
-
-                    <div className="text-xs space-y-1 text-gray-400">
-                      {cls.college && <p><span className="text-gray-500">College:</span> {cls.college}</p>}
-                      {(cls.year || cls.semester || cls.regulation || cls.section) && (
-                        <p>
-                          {cls.year && `Year ${cls.year} • `}
-                          {cls.semester && `Sem ${cls.semester} • `}
-                          {cls.regulation && `Reg ${cls.regulation} `}
-                          {cls.section && `(Sec ${cls.section})`}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 flex justify-between items-center border-t border-white/5">
-                    <span className="text-xs text-primary font-semibold flex items-center gap-1 group-hover:underline">
-                      Enter Classroom →
-                    </span>
-                    <button
-                      onClick={(e) => handleLeaveClass(e, cls.id, cls.name)}
-                      className="text-xs text-gray-400 hover:text-neutral-400 flex items-center gap-1 transition-colors z-10"
-                    >
-                      <LogOut className="w-3 h-3" /> Leave
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-400 text-sm">
-              You haven't joined any classes yet. Click <span className="text-primary font-semibold">"Join Class"</span> and enter a 6-character class code from your instructor.
-            </div>
+      {/* 4. Continue Learning (Current In-Progress Task/Module) */}
+      <section className="space-y-4 pt-4 border-t border-[#E5E5E5]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+            Continue Learning
+          </span>
+          {currentModule && (
+            <span className="text-xs text-[#737373]">
+              Module {moduleIndex} of {totalModules}
+            </span>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Active Learning Plan */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Current Learning Plan</CardTitle>
-              {activePlan && activePlan.status !== 'completed' && (
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/student/verify/${activePlan.id}`)}
-                  className="gap-2 shadow-lg shadow-primary/20"
+        <div className="bg-white border border-[#E5E5E5] rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-[#0A0A0A]">
+                {currentTask?.title || currentModule?.title || 'Foundational Principles'}
+              </span>
+              <Badge variant="neutral">
+                {currentTask?.task_type || 'Lesson'}
+              </Badge>
+            </div>
+            <p className="text-xs text-[#737373] max-w-md">
+              {currentTask?.description ||
+                currentModule?.description ||
+                'Review module notes and practice algorithmic concepts to build mastery.'}
+            </p>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-2">
+            {currentTask ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate(`/student/learn/${currentTask?.id}`)}
+              >
+                Open
+                <ChevronRight className="w-3.5 h-3.5 ml-1 text-[#737373]" />
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/student/plan')}
+              >
+                View Plan
+              </Button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Skill Snapshot */}
+      <section className="space-y-4 pt-4 border-t border-[#E5E5E5]">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+            Skill Snapshot
+          </span>
+          <button
+            onClick={() => navigate('/student/skills')}
+            className="text-xs font-medium text-[#0A0A0A] hover:underline"
+          >
+            View Full Model →
+          </button>
+        </div>
+
+        {skills.length === 0 ? (
+          <div className="py-6 text-center border border-dashed border-[#E5E5E5] rounded-xl bg-white space-y-2">
+            <p className="text-xs text-[#737373]">
+              No skill scores recorded yet. Complete your diagnostic assessment to initialize your learner model.
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/student/assessment')}
+            >
+              Take Assessment
+            </Button>
+          </div>
+        ) : (
+          <div className="bg-white border border-[#E5E5E5] rounded-xl divide-y divide-[#E5E5E5]">
+            {skills.slice(0, 5).map((sk) => {
+              const scorePct = Math.round(sk.score);
+              return (
+                <div
+                  key={sk.id}
+                  className="p-4 flex items-center justify-between gap-4 text-sm"
                 >
-                  <Award className="w-4 h-4 text-neutral-300" />
-                  Verify Path (5-MCQ Test)
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  <span className="ml-3 text-gray-400">Loading plan from database...</span>
-                </div>
-              ) : error ? (
-                <div className="flex items-center p-4 bg-neutral-500/10 border border-neutral-500/20 rounded-xl text-neutral-400">
-                  <AlertCircle className="w-5 h-5 mr-3 shrink-0" />
-                  {error}
-                </div>
-              ) : !activePlan ? (
-                <div className="text-center py-12 border border-dashed border-white/10 rounded-xl bg-white/5">
-                  <p className="text-gray-400 mb-4">No active learning plan yet.</p>
-                  <Button onClick={() => navigate('/student/generate')}>
-                    Generate AI Learning Plan
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 relative">
-                    {activePlan.status === 'completed' && (
-                      <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 bg-neutral-500/20 text-neutral-300 border border-neutral-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
-                        <Award className="w-4 h-4 text-neutral-300" />
-                        Learning Path Verified & Completed
-                      </div>
-                    )}
-                    <p className="text-sm text-primary font-medium mb-1">{activePlan.subject}</p>
-                    <h3 className="text-xl font-bold">{activePlan.topic}</h3>
-                    <p className="text-gray-300 mt-2 text-sm">{activePlan.learning_goal}</p>
-                    <div className="w-full bg-black/40 rounded-full h-2 mt-4 overflow-hidden">
+                  <span className="font-medium text-[#0A0A0A] min-w-0 truncate">
+                    {sk.skill_category}
+                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="w-24 sm:w-32 bg-[#E5E5E5] h-1.5 rounded-full overflow-hidden">
                       <div
-                        className="bg-primary h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${progressPercent}%` }}
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          scorePct >= 70
+                            ? 'bg-[#0A0A0A]'
+                            : scorePct >= 40
+                            ? 'bg-[#525252]'
+                            : 'bg-[#A3A3A3]'
+                        }`}
+                        style={{ width: `${Math.max(4, scorePct)}%` }}
                       />
                     </div>
-                  </div>
-
-                  <div className="space-y-6 mt-6">
-                    {activePlan.modules.map((module) => (
-                      <div key={module.id} className="space-y-3">
-                        <h4 className="font-semibold text-lg border-b border-white/10 pb-2 flex justify-between">
-                          {module.title}
-                        </h4>
-                        <div className="space-y-2">
-                          {module.tasks.map((task) => (
-                            <div
-                              key={task.id}
-                              className={`p-4 flex items-center justify-between rounded-lg border ${
-                                task.is_completed
-                                  ? 'bg-neutral-500/10 border-neutral-500/20'
-                                  : 'bg-white/5 border-white/10'
-                              } transition-colors`}
-                            >
-                              <div className="flex items-center gap-3">
-                                {task.is_completed ? (
-                                  <CheckCircle2 className="w-5 h-5 text-neutral-400 shrink-0" />
-                                ) : (
-                                  <div className="w-5 h-5 rounded-full border-2 border-gray-500 shrink-0" />
-                                )}
-                                <div>
-                                  <p className={`font-medium text-sm ${task.is_completed ? 'line-through text-gray-400' : 'text-gray-200'}`}>
-                                    {task.title}
-                                  </p>
-                                  <p className="text-xs text-gray-500 capitalize">{task.task_type}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => navigate(`/student/learn/${task.id}`)}
-                                  className="text-xs gap-1.5"
-                                >
-                                  <BookOpen className="w-3.5 h-3.5 text-primary" />
-                                  Study
-                                </Button>
-                                {!task.is_completed && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    disabled={completingTaskId === task.id}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCompleteTask(task.id);
-                                    }}
-                                    className="text-xs text-gray-400 hover:text-white"
-                                  >
-                                    {completingTaskId === task.id ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                      'Done'
-                                    )}
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                    <span className="text-xs font-semibold text-[#0A0A0A] w-8 text-right">
+                      {scorePct}%
+                    </span>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: Quick Stats & Actions */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Skill Profile</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {skillScores ? (
-                <div className="space-y-3">
-                  {Object.entries(skillScores).map(([key, score]) => {
-                    const label = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                    const isStrong = score >= 70;
-                    return (
-                      <div key={key} className="flex justify-between items-center p-3 rounded-lg bg-surface-light border border-white/5">
-                        <span className="text-sm font-medium text-gray-200">{label}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold">{Math.round(score as number)}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${isStrong ? 'bg-neutral-500/20 text-neutral-400 border border-neutral-500/30' : 'bg-neutral-500/20 text-neutral-400 border border-neutral-500/30'}`}>
-                            {isStrong ? 'Strong' : 'Needs Work'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-400 text-sm border border-dashed border-white/10 rounded-xl bg-white/5">
-                  Complete assignments to unlock skill insights.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button onClick={() => navigate('/student/generate')} className="w-full flex items-center justify-center">
-                <Sparkles className="w-4 h-4 mr-2" /> Create Learning Plan
-              </Button>
-              <Button onClick={() => navigate('/student/skill-tree')} variant="outline" className="w-full">
-                View Skill Tree
-              </Button>
-              <Button onClick={() => navigate('/student/assessment')} variant="outline" className="w-full">
-                Take Diagnostic Assessment
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Join Class Modal */}
-      {showJoinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-surface border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
-            <button
-              onClick={() => setShowJoinModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div>
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <School className="w-6 h-6 mr-2 text-primary" /> Join Classroom
-              </h2>
-              <p className="text-xs text-gray-400 mt-1">Enter the 6-character class code provided by your instructor.</p>
-            </div>
-
-            {joinError && (
-              <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm rounded-xl">
-                {joinError}
-              </div>
-            )}
-
-            {joinSuccessMsg ? (
-              <div className="space-y-4 py-4 text-center">
-                <div className="p-4 bg-neutral-500/10 border border-neutral-500/30 rounded-xl text-neutral-300">
-                  <p className="font-semibold text-sm">{joinSuccessMsg}</p>
-                </div>
-                <Button className="w-full" onClick={() => setShowJoinModal(false)}>
-                  Done
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleJoinClassSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                    Class Code *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. WD7K9P"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    maxLength={10}
-                    className="w-full bg-black/40 border border-white/10 focus:border-primary rounded-xl px-4 py-3 text-center text-2xl font-mono tracking-widest font-bold text-white focus:outline-none uppercase"
-                    required
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <Button type="button" variant="outline" className="w-full" onClick={() => setShowJoinModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="w-full" disabled={isJoining || !joinCode.trim()}>
-                    {isJoining ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    Join Class
-                  </Button>
-                </div>
-              </form>
-            )}
+              );
+            })}
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
-      {/* Verification 5-MCQ Test Modal */}
-      {showVerifyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-surface border border-white/10 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowVerifyModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {/* 6. Recommended Next Step */}
+      <section className="space-y-4 pt-4 border-t border-[#E5E5E5]">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+          Recommended Next Step
+        </span>
 
+        <div className="bg-white border border-[#E5E5E5] rounded-xl p-6 space-y-3">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <Award className="w-6 h-6 mr-2 text-neutral-400" /> Path Verification Test
-              </h2>
-              <p className="text-xs text-gray-400 mt-1">
-                Answer 5 AI-generated questions to verify mastery of {activePlan?.topic}. Pass mark: 60% (3/5 correct).
+              <h3 className="text-base font-semibold text-[#0A0A0A]">
+                {lowestSkill ? lowestSkill.skill_category : currentTopic}
+              </h3>
+              <p className="text-sm text-[#737373] mt-1 max-w-lg leading-relaxed">
+                {lowestSkill
+                  ? `Based on your recent assessment, ${lowestSkill.skill_category} is currently rated at ${Math.round(
+                      lowestSkill.score
+                    )}% and represents your highest-priority improvement opportunity.`
+                  : 'Based on your diagnostic profile, advancing your core topics is your highest-priority step.'}
               </p>
             </div>
+            <Badge variant="needs_attention">
+              High Priority
+            </Badge>
+          </div>
 
-            {isLoadingVerify ? (
-              <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm text-gray-400">Generating verification questions from curriculum...</p>
-              </div>
-            ) : verifyResult ? (
-              <div className="space-y-6 py-4">
-                <div
-                  className={`p-6 rounded-xl border text-center space-y-2 ${
-                    verifyResult.passed
-                      ? 'bg-neutral-500/10 border-neutral-500/30 text-neutral-300'
-                      : 'bg-neutral-500/10 border-neutral-500/30 text-neutral-300'
-                  }`}
-                >
-                  <p className="text-3xl font-bold">{verifyResult.score_percent}%</p>
-                  <p className="font-semibold text-lg">{verifyResult.passed ? 'PASSED & VERIFIED!' : 'NEEDS REVISION'}</p>
-                  <p className="text-sm opacity-90">{verifyResult.message}</p>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button onClick={() => setShowVerifyModal(false)}>Close</Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {verifyQuestions.map((q, idx) => (
-                  <div key={q.id} className="p-4 bg-surface-light border border-white/5 rounded-xl space-y-3">
-                    <p className="font-semibold text-sm text-gray-200">
-                      {idx + 1}. {q.question_text}
-                    </p>
-                    <div className="space-y-2">
-                      {q.options.map((opt, oIdx) => (
-                        <label
-                          key={oIdx}
-                          className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
-                            verifyAnswers[q.id] === opt
-                              ? 'bg-primary/20 border-primary text-white'
-                              : 'bg-white/5 border-white/5 hover:border-white/20 text-gray-300'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={`q-${q.id}`}
-                            value={opt}
-                            checked={verifyAnswers[q.id] === opt}
-                            onChange={() => setVerifyAnswers({ ...verifyAnswers, [q.id]: opt })}
-                            className="sr-only"
-                          />
-                          <span className="text-xs font-medium mr-3 text-primary">{String.fromCharCode(65 + oIdx)}.</span>
-                          <span className="text-sm">{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-                  <Button variant="outline" onClick={() => setShowVerifyModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSubmitVerification}
-                    disabled={isSubmittingVerify || Object.keys(verifyAnswers).length < verifyQuestions.length}
-                  >
-                    {isSubmittingVerify ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    Submit Verification Test
-                  </Button>
-                </div>
-              </div>
-            )}
+          <div className="pt-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (activePlan) {
+                  navigate('/student/plan');
+                } else {
+                  navigate('/student/goal');
+                }
+              }}
+            >
+              Start
+              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+            </Button>
           </div>
         </div>
-      )}
+      </section>
     </div>
   );
 }

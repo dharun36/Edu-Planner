@@ -109,33 +109,33 @@ export default function AcademicStructureManager() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
-          <Layers className="w-7 h-7 text-primary" />
+      <div className="pb-2 border-b border-[#E5E5E5] dark:border-[#262626]">
+        <h1 className="text-2xl font-bold tracking-tight text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center gap-2.5">
+          <Layers className="w-6 h-6 text-[#0A0A0A] dark:text-[#FAFAFA]" />
           Academic Structure
         </h1>
-        <p className="text-sm text-gray-400 mt-1">
+        <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">
           Configure departments and courses to organize student cohorts and curriculums.
         </p>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center p-12">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <Loader2 className="w-6 h-6 text-[#0A0A0A] dark:text-[#FAFAFA] animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Departments Section */}
-          <Card className="border-white/5 bg-surface/60">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
+          <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-[#E5E5E5] dark:border-[#262626] px-5 py-4">
               <div>
-                <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-neutral-400" />
+                <CardTitle className="text-sm font-semibold text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[#737373]" />
                   Departments ({departments.length})
                 </CardTitle>
-                <p className="text-xs text-gray-400 mt-0.5">Faculty divisions</p>
+                <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-0.5">Faculty divisions</p>
               </div>
               <Button
                 size="sm"
@@ -143,38 +143,38 @@ export default function AcademicStructureManager() {
                   setDeptError('');
                   setIsDeptModalOpen(true);
                 }}
-                className="flex items-center gap-1.5"
+                className="flex items-center gap-1.5 text-xs h-8"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 Add Department
               </Button>
             </CardHeader>
             <CardContent className="p-0">
               {departments.length === 0 ? (
-                <div className="p-8 text-center text-gray-400 text-sm">
+                <div className="p-8 text-center text-[#737373] text-xs">
                   No departments created yet.
                 </div>
               ) : (
-                <div className="divide-y divide-white/5">
+                <div className="divide-y divide-[#E5E5E5] dark:divide-[#262626]">
                   {departments.map((dept) => {
                     const deptProgramsCount = programs.filter(
                       (p) => p.department_id === dept.id
                     ).length;
 
                     return (
-                      <div key={dept.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02]">
+                      <div key={dept.id} className="p-4 flex items-center justify-between hover:bg-[#F5F5F5]/60 dark:hover:bg-[#202020]/60 transition-colors">
                         <div>
-                          <p className="text-sm font-semibold text-white">{dept.name}</p>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                          <p className="text-xs font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">{dept.name}</p>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-[#737373] dark:text-[#A3A3A3]">
                             {dept.code && (
-                              <span className="font-mono bg-white/5 px-2 py-0.5 rounded">
+                              <span className="font-mono bg-[#F5F5F5] dark:bg-[#262626] border border-[#E5E5E5] dark:border-[#333333] px-1.5 py-0.5 rounded text-[10px]">
                                 {dept.code}
                               </span>
                             )}
                             <span>{deptProgramsCount} courses</span>
                           </div>
                           {dept.description && (
-                            <p className="text-xs text-gray-500 mt-1">{dept.description}</p>
+                            <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-1">{dept.description}</p>
                           )}
                         </div>
                       </div>
@@ -186,18 +186,18 @@ export default function AcademicStructureManager() {
           </Card>
 
           {/* Courses Section */}
-          <Card className="border-white/5 bg-surface/60">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
+          <Card className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-[#E5E5E5] dark:border-[#262626] px-5 py-4">
               <div>
-                <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-neutral-400" />
+                <CardTitle className="text-sm font-semibold text-[#0A0A0A] dark:text-[#FAFAFA] flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-[#737373]" />
                   Courses ({programs.length})
                 </CardTitle>
-                <p className="text-xs text-gray-400 mt-0.5">Courses offered by the department</p>
+                <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mt-0.5">Courses offered by the department</p>
               </div>
               <Button
                 size="sm"
-                variant="secondary"
+                variant="outline"
                 disabled={departments.length === 0}
                 onClick={() => {
                   setProgramError('');
@@ -209,33 +209,33 @@ export default function AcademicStructureManager() {
                   }
                   setIsProgramModalOpen(true);
                 }}
-                className="flex items-center gap-1.5"
+                className="flex items-center gap-1.5 text-xs h-8"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 Add Course
               </Button>
             </CardHeader>
             <CardContent className="p-0">
               {programs.length === 0 ? (
-                <div className="p-8 text-center text-gray-400 text-sm">
+                <div className="p-8 text-center text-[#737373] text-xs">
                   No courses added yet.
                 </div>
               ) : (
-                <div className="divide-y divide-white/5">
+                <div className="divide-y divide-[#E5E5E5] dark:divide-[#262626]">
                   {programs.map((program) => {
                     const dept = departments.find((d) => d.id === program.department_id);
 
                     return (
-                      <div key={program.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02]">
+                      <div key={program.id} className="p-4 flex items-center justify-between hover:bg-[#F5F5F5]/60 dark:hover:bg-[#202020]/60 transition-colors">
                         <div>
-                          <p className="text-sm font-semibold text-white">{program.name}</p>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                          <p className="text-xs font-semibold text-[#0A0A0A] dark:text-[#FAFAFA]">{program.name}</p>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-[#737373] dark:text-[#A3A3A3]">
                             {program.code && (
-                              <span className="font-mono bg-white/5 px-2 py-0.5 rounded">
+                              <span className="font-mono bg-[#F5F5F5] dark:bg-[#262626] border border-[#E5E5E5] dark:border-[#333333] px-1.5 py-0.5 rounded text-[10px]">
                                 {program.code}
                               </span>
                             )}
-                            <span className="text-neutral-300">{dept?.name || 'Unknown Department'}</span>
+                            <span>{dept?.name || 'Department'}</span>
                           </div>
                         </div>
                       </div>
@@ -250,25 +250,25 @@ export default function AcademicStructureManager() {
 
       {/* Add Department Modal */}
       {isDeptModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-white/10 rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl w-full max-w-md p-6 relative shadow-xl">
             <button
               onClick={() => setIsDeptModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-[#737373] hover:text-[#0A0A0A] dark:hover:text-[#FAFAFA]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-neutral-400" />
+            <h2 className="text-base font-bold text-[#0A0A0A] dark:text-[#FAFAFA] mb-1 flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
               Add Department
             </h2>
-            <p className="text-xs text-gray-400 mb-5">
+            <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mb-5">
               Create an academic division (e.g. Computer Science, Mechanical).
             </p>
 
             {deptError && (
-              <div className="mb-4 p-3 text-xs bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 rounded-xl flex items-center gap-2">
+              <div className="mb-4 p-3 text-xs bg-[#F5F5F5] dark:bg-[#202020] border border-[#E5E5E5] dark:border-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] rounded-md flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 shrink-0" />
                 <span>{deptError}</span>
               </div>
@@ -291,9 +291,11 @@ export default function AcademicStructureManager() {
               />
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-300">Description</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">
+                  Description
+                </label>
                 <textarea
-                  className="w-full bg-surface-light border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary/50"
+                  className="w-full bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] rounded-md px-3 py-2 text-xs text-[#0A0A0A] dark:text-[#FAFAFA] focus:outline-none focus:border-[#0A0A0A] dark:focus:border-[#FAFAFA]"
                   rows={3}
                   placeholder="Optional department notes"
                   value={deptForm.description || ''}
@@ -301,8 +303,8 @@ export default function AcademicStructureManager() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
-                <Button type="button" variant="ghost" onClick={() => setIsDeptModalOpen(false)}>
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#E5E5E5] dark:border-[#262626]">
+                <Button type="button" variant="outline" onClick={() => setIsDeptModalOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" isLoading={isDeptSubmitting}>
@@ -316,25 +318,25 @@ export default function AcademicStructureManager() {
 
       {/* Add Course Modal */}
       {isProgramModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-white/10 rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#171717] border border-[#E5E5E5] dark:border-[#262626] rounded-xl w-full max-w-md p-6 relative shadow-xl">
             <button
               onClick={() => setIsProgramModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-[#737373] hover:text-[#0A0A0A] dark:hover:text-[#FAFAFA]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-neutral-400" />
+            <h2 className="text-base font-bold text-[#0A0A0A] dark:text-[#FAFAFA] mb-1 flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
               Add Course
             </h2>
-            <p className="text-xs text-gray-400 mb-5">
+            <p className="text-xs text-[#737373] dark:text-[#A3A3A3] mb-5">
               Create a specific degree course under a department.
             </p>
 
             {programError && (
-              <div className="mb-4 p-3 text-xs bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 rounded-xl flex items-center gap-2">
+              <div className="mb-4 p-3 text-xs bg-[#F5F5F5] dark:bg-[#202020] border border-[#E5E5E5] dark:border-[#262626] text-[#0A0A0A] dark:text-[#FAFAFA] rounded-md flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 shrink-0" />
                 <span>{programError}</span>
               </div>
@@ -342,9 +344,11 @@ export default function AcademicStructureManager() {
 
             <form onSubmit={handleCreateProgram} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-300">Department *</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-[#737373] dark:text-[#A3A3A3]">
+                  Department *
+                </label>
                 <select
-                  className="w-full bg-surface-light border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-neutral-500/50"
+                  className="w-full bg-[#FAFAFA] dark:bg-[#111111] border border-[#E5E5E5] dark:border-[#262626] rounded-md px-3 py-2 text-xs text-[#0A0A0A] dark:text-[#FAFAFA] focus:outline-none focus:border-[#0A0A0A] dark:focus:border-[#FAFAFA]"
                   value={programForm.department_id}
                   onChange={(e) =>
                     setProgramForm({ ...programForm, department_id: Number(e.target.value) })
@@ -374,11 +378,11 @@ export default function AcademicStructureManager() {
                 onChange={(e) => setProgramForm({ ...programForm, code: e.target.value })}
               />
 
-              <div className="flex justify-end gap-3 pt-3">
-                <Button type="button" variant="ghost" onClick={() => setIsProgramModalOpen(false)}>
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-[#E5E5E5] dark:border-[#262626]">
+                <Button type="button" variant="outline" onClick={() => setIsProgramModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" variant="secondary" isLoading={isProgramSubmitting}>
+                <Button type="submit" isLoading={isProgramSubmitting}>
                   Save Course
                 </Button>
               </div>

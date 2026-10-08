@@ -3,20 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../components/auth/AuthProvider';
 import { authApi } from '../../api/auth';
 import { skillsApi, SkillScore } from '../../api/skills';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
-import {
-  Target,
-  BookOpen,
-  Sparkles,
-  ArrowRight,
-  TrendingUp,
-  Brain,
-  CheckCircle2,
-  AlertCircle,
-  RotateCcw,
-} from 'lucide-react';
+import { Badge } from '../../components/common/Badge';
+import { ArrowRight, Check, RotateCcw, Sparkles } from 'lucide-react';
 
 export default function LearningGoal() {
   const { user, login } = useAuth();
@@ -29,7 +19,6 @@ export default function LearningGoal() {
   );
 
   const [skills, setSkills] = useState<SkillScore[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,14 +28,11 @@ export default function LearningGoal() {
   }, []);
 
   const loadSkills = async () => {
-    setIsLoading(true);
     try {
       const skillsData = await skillsApi.getRawSkills();
       setSkills(skillsData || []);
     } catch {
-      // Non-fatal if skills not loaded yet
-    } finally {
-      setIsLoading(false);
+      // Non-fatal
     }
   };
 
@@ -77,176 +63,115 @@ export default function LearningGoal() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-            <Target className="w-7 h-7 text-primary" />
-            Learning Goal & Target Context
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            EduPlanner maintains your persistent goal to continuously guide adaptive replanning.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/student/assessment')}
-            className="gap-2"
-          >
-            <RotateCcw className="w-4 h-4 text-primary" />
-            Re-take Assessment
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => navigate('/student/generate')}
-            className="gap-2 shadow-lg shadow-primary/20"
-          >
-            <Sparkles className="w-4 h-4" />
-            Generate Adaptive Plan
-          </Button>
-        </div>
+    <div className="max-w-2xl mx-auto py-4 sm:py-8 space-y-8">
+      {/* Page Title */}
+      <div className="space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#0A0A0A]">
+          What would you like to learn?
+        </h1>
+        <p className="text-sm text-[#737373]">
+          Define your target topic and scope. EduPlanner uses this goal to synthesize your personalized learning path.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Learning Goal Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="border-white/10 bg-surface/90">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-primary" />
-                Active Learning Target
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {error && (
-                <div className="mb-4 p-3 rounded-xl bg-neutral-500/10 border border-neutral-500/20 text-neutral-400 text-sm flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-              {saveSuccess && (
-                <div className="mb-4 p-3 rounded-xl bg-neutral-500/10 border border-neutral-500/20 text-neutral-300 text-sm flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Learning goal updated successfully! Your next plan will adapt to this goal.</span>
-                </div>
-              )}
+      {error && (
+        <div className="p-3.5 text-xs bg-white border border-[#262626] text-[#0A0A0A] rounded-lg">
+          {error}
+        </div>
+      )}
 
-              <form onSubmit={handleSaveGoal} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                    Subject Domain
-                  </label>
-                  <Input
-                    required
-                    placeholder="e.g. Data Structures"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                  />
-                </div>
+      {saveSuccess && (
+        <div className="p-3.5 text-xs bg-[#F5F5F5] border border-[#0A0A0A] text-[#0A0A0A] rounded-lg flex items-center gap-2">
+          <Check className="w-4 h-4 shrink-0 text-[#0A0A0A]" />
+          <span>Goal updated. Your next learning plan and diagnostic tasks will adapt to this target.</span>
+        </div>
+      )}
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                    Target Topic
-                  </label>
-                  <Input
-                    required
-                    placeholder="e.g. Binary Search Trees"
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                    Detailed Learning Goal
-                  </label>
-                  <textarea
-                    required
-                    rows={3}
-                    className="w-full px-3 py-2 rounded-xl bg-surface-light border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-primary text-sm"
-                    placeholder="State what you want to achieve or build..."
-                    value={learningGoal}
-                    onChange={(e) => setLearningGoal(e.target.value)}
-                  />
-                </div>
-
-                <div className="pt-2 flex justify-between items-center">
-                  <span className="text-xs text-gray-500">
-                    Stored persistently — no need to re-enter every session.
-                  </span>
-                  <Button type="submit" isLoading={isSaving} className="gap-2">
-                    Save Changes
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+      {/* Main Goal Form */}
+      <form onSubmit={handleSaveGoal} className="space-y-6 bg-white border border-[#E5E5E5] rounded-xl p-6 sm:p-8">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium uppercase tracking-wider text-[#525252]">
+            Subject
+          </label>
+          <Input
+            required
+            placeholder="e.g. Data Structures"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+          />
         </div>
 
-        {/* Right Column: Skill State Summary */}
-        <div className="space-y-6">
-          <Card className="border-white/10 bg-surface/90">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Brain className="w-5 h-5 text-neutral-400" />
-                Current Learner Model
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {skills.length === 0 ? (
-                <div className="text-center py-6 space-y-3">
-                  <p className="text-xs text-gray-400">
-                    No persistent skills recorded yet. Complete your diagnostic assessment to initialize your learner model.
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate('/student/assessment')}
-                    className="text-xs w-full"
-                  >
-                    Take Assessment Now
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {skills.slice(0, 5).map((sk) => (
-                    <div key={sk.id} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="font-medium text-gray-300">{sk.skill_category}</span>
-                        <span className="font-bold text-primary">{Math.round(sk.score)}%</span>
-                      </div>
-                      <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            sk.score >= 70
-                              ? 'bg-neutral-500'
-                              : sk.score >= 40
-                              ? 'bg-neutral-500'
-                              : 'bg-neutral-500'
-                          }`}
-                          style={{ width: `${Math.max(5, sk.score)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <div className="pt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate('/student/skill-tree')}
-                      className="w-full text-xs text-gray-400 hover:text-white"
-                    >
-                      View Full Skill Tree →
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium uppercase tracking-wider text-[#525252]">
+            Topic
+          </label>
+          <Input
+            required
+            placeholder="e.g. Binary Search Trees"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+          />
         </div>
-      </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium uppercase tracking-wider text-[#525252]">
+            What is your goal?
+          </label>
+          <textarea
+            required
+            rows={4}
+            className="w-full px-3.5 py-2.5 rounded-lg border border-[#E5E5E5] bg-white text-sm text-[#0A0A0A] placeholder:text-[#A3A3A3] focus-visible:outline-none focus-visible:border-[#0A0A0A] focus-visible:ring-1 focus-visible:ring-[#0A0A0A] transition-colors leading-relaxed"
+            placeholder="e.g. I want to understand and implement Binary Search Trees."
+            value={learningGoal}
+            onChange={(e) => setLearningGoal(e.target.value)}
+          />
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#E5E5E5]">
+          <span className="text-xs text-[#737373]">
+            Changes are saved permanently to your profile.
+          </span>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <Button type="submit" variant="secondary" size="md" isLoading={isSaving}>
+              Save Changes
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => navigate('/student/plan')}
+            >
+              Continue
+              <ArrowRight className="w-4 h-4 ml-1.5" />
+            </Button>
+          </div>
+        </div>
+      </form>
+
+      {/* Skill Context Callout */}
+      {skills.length > 0 && (
+        <div className="border border-[#E5E5E5] bg-[#F5F5F5] rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+              Current Learner Model Context
+            </span>
+            <button
+              onClick={() => navigate('/student/skills')}
+              className="text-xs font-medium text-[#0A0A0A] hover:underline"
+            >
+              View All Skills →
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            {skills.slice(0, 4).map((sk) => (
+              <div key={sk.id} className="bg-white border border-[#E5E5E5] p-2.5 rounded-lg flex justify-between items-center">
+                <span className="text-[#262626] font-medium">{sk.skill_category}</span>
+                <span className="font-semibold text-[#0A0A0A]">{Math.round(sk.score)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

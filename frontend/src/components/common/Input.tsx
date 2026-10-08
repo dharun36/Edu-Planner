@@ -4,25 +4,32 @@ import { cn } from '../../utils/cn';
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  helperText?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, ...props }, ref) => {
+  ({ className, label, error, helperText, ...props }, ref) => {
     return (
       <div className="flex flex-col gap-1.5 w-full">
-        {label && <label className="text-sm font-medium text-gray-300">{label}</label>}
+        {label && (
+          <label className="text-xs font-medium uppercase tracking-wider text-[#525252]">
+            {label}
+          </label>
+        )}
         <input
           ref={ref}
           className={cn(
-            "flex h-11 w-full rounded-xl border border-neutral-700 bg-surface px-4 py-2 text-sm text-white ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
-            error && "border-neutral-400 focus-visible:ring-neutral-400",
+            "flex h-10 w-full rounded-lg border border-[#E5E5E5] bg-white px-3.5 py-2 text-sm text-[#0A0A0A] placeholder:text-[#A3A3A3] focus-visible:outline-none focus-visible:border-[#0A0A0A] focus-visible:ring-1 focus-visible:ring-[#0A0A0A] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+            error && "border-[#262626] focus-visible:ring-[#262626]",
             className
           )}
           {...props}
         />
-        {error && <span className="text-xs text-neutral-300">{error}</span>}
+        {helperText && !error && <span className="text-xs text-[#737373]">{helperText}</span>}
+        {error && <span className="text-xs text-[#262626] font-medium">{error}</span>}
       </div>
     );
   }
 );
 Input.displayName = 'Input';
+
