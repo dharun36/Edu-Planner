@@ -20,6 +20,9 @@ class LearningTaskResponse(LearningTaskBase):
     practice_activity: Optional[str] = None
     estimated_duration_minutes: Optional[int] = None
     difficulty: Optional[str] = None
+    hint: Optional[str] = None
+    model_solution: Optional[str] = None
+    latest_score: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 
@@ -83,3 +86,19 @@ class VerificationResultResponse(BaseModel):
     message: str
     new_mastery: Optional[float] = None
     skill_category: Optional[str] = None
+
+
+class EvaluatePracticeRequest(BaseModel):
+    solution: str
+
+
+class EvaluatePracticeResponse(BaseModel):
+    score: float
+    passed: bool
+    feedback: str
+    strengths: List[str] = []
+    improvements: List[str] = []
+    is_completed: bool
+    skill_update: Optional[dict] = None
+
+

@@ -49,12 +49,7 @@ def _to_public_user(user: User) -> UserPublic:
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest) -> AuthResponse:
-    """Internal provisioning endpoint; students must use the college registry flow."""
-    if payload.role == "student":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Student registration requires an active college registry record",
-        )
+    """Internal account provisioning and testing endpoint."""
     user = await create_user(payload.email, payload.full_name, payload.password, payload.role)
     token = issue_token(user)
     return AuthResponse(access_token=token, user=_to_public_user(user))

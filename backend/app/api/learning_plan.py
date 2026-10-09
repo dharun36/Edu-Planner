@@ -16,6 +16,11 @@ from app.services.learner_model_service import (
     save_verification_questions,
     get_latest_verification_for_plan,
     record_verification_and_update_learner_model,
+    update_skill_on_task_practice,
+)
+from app.services.lesson_content_service import (
+    generate_rich_lesson_content,
+    generate_task_hint_and_solution,
 )
 from app.dependencies.auth import require_role
 from app.schemas.learning_plan import (
@@ -24,6 +29,8 @@ from app.schemas.learning_plan import (
     VerificationQuestion,
     VerificationSubmitRequest,
     VerificationResultResponse,
+    EvaluatePracticeRequest,
+    EvaluatePracticeResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -104,6 +111,225 @@ async def get_learning_plan(
     return plan
 
 
+@router.patch("/{plan_id}/activate", response_model=LearningPlanResponse)
+async def activate_learning_plan(
+    plan_id: int,
+    current_user: User = Depends(require_role("student")),
+    db: Session = Depends(get_db)
+):
+    """
+    Set a specific learning plan as active, archiving any other active plans for this student.
+    """
+    target_plan = db.execute(
+        select(LearningPlan)
+        .where(LearningPlan.id == plan_id)
+        .where(LearningPlan.user_id == current_user.id)
+    ).scalars().unique().first()
+
+    if not target_plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Learning plan not found or not authorized."
+        )
+
+    # Archive other active plans for this student
+    other_plans = db.execute(
+        select(LearningPlan)
+        .where(LearningPlan.user_id == current_user.id)
+        .where(LearningPlan.id != plan_id)
+        .where(LearningPlan.status == "active")
+    ).scalars().all()
+
+    for p in other_plans:
+        p.status = "archived"
+
+    target_plan.status = "active"
+    db.commit()
+    db.refresh(target_plan)
+    return target_plan
+
+
+def _get_task_hint_and_solution(task: LearningTask, subject: str = "", topic: str = "") -> tuple[str, str]:
+    return generate_task_hint_and_solution(
+        title=task.title,
+        subject=subject,
+        topic=topic,
+        practice=task.practice_activity or "",
+    )
+
+    if "array" in combined:
+        hint = "Remember to double the underlying buffer capacity when size equals capacity, and copy elements across."
+        solution = (
+            "class DynamicArray:\n"
+            "    def __init__(self, capacity=2):\n"
+            "        self.capacity = capacity\n"
+            "        self.size = 0\n"
+            "        self.data = [None] * capacity\n\n"
+            "    def append(self, val):\n"
+            "        if self.size == self.capacity:\n"
+            "            self._resize(2 * self.capacity)\n"
+            "        self.data[self.size] = val\n"
+            "        self.size += 1\n\n"
+            "    def _resize(self, new_cap):\n"
+            "        new_data = [None] * new_cap\n"
+            "        for i in range(self.size):\n"
+            "            new_data[i] = self.data[i]\n"
+            "        self.data = new_data\n"
+            "        self.capacity = new_cap"
+        )
+    elif "recursion" in combined:
+        hint = "Always define base cases explicitly (e.g. n <= 1) before writing the recursive step to avoid infinite stack recursion."
+        solution = (
+            "def fibonacci(n):\n"
+            "    # Base cases\n"
+            "    if n <= 0:\n"
+            "        return 0\n"
+            "    if n == 1:\n"
+            "        return 1\n"
+            "    # Recursive step\n"
+            "    return fibonacci(n - 1) + fibonacci(n - 2)\n\n"
+            "# Verification:\n"
+            "assert fibonacci(5) == 5\n"
+            "assert fibonacci(6) == 8"
+        )
+    elif "traversal" in combined:
+        hint = "In-order traversal visits the left subtree, then current node, then right subtree. For a valid BST, this yields strictly ascending values."
+        solution = (
+            "def inorder_traversal(root):\n"
+            "    if not root:\n"
+            "        return []\n"
+            "    return inorder_traversal(root.left) + [root.val] + inorder_traversal(root.right)\n\n"
+            "# Iterative alternative with stack:\n"
+            "def inorder_iterative(root):\n"
+            "    res, stack, curr = [], [], root\n"
+            "    while curr or stack:\n"
+            "        while curr:\n"
+            "            stack.append(curr)\n"
+            "            curr = curr.left\n"
+            "        curr = stack.pop()\n"
+            "        res.append(curr.val)\n"
+            "        curr = curr.right\n"
+            "    return res"
+        )
+    elif "deletion" in combined or "delete" in combined:
+        hint = "For nodes with two children, replace the deleted node with its in-order successor (the minimum node in the right subtree)."
+        solution = (
+            "def get_min(node):\n"
+            "    while node.left:\n"
+            "        node = node.left\n"
+            "    return node\n\n"
+            "def delete_node(root, key):\n"
+            "    if not root:\n"
+            "        return None\n"
+            "    if key < root.val:\n"
+            "        root.left = delete_node(root.left, key)\n"
+            "    elif key > root.val:\n"
+            "        root.right = delete_node(root.right, key)\n"
+            "    else:\n"
+            "        if not root.left:\n"
+            "            return root.right\n"
+            "        if not root.right:\n"
+            "            return root.left\n"
+            "        succ = get_min(root.right)\n"
+            "        root.val = succ.val\n"
+            "        root.right = delete_node(root.right, succ.val)\n"
+            "    return root"
+        )
+    elif "insertion" in combined or "insert" in combined:
+        hint = "Compare the value with the current node: recurse left if smaller, recurse right if larger. Return the root after updating links."
+        solution = (
+            "class BSTNode:\n"
+            "    def __init__(self, val):\n"
+            "        self.val = val\n"
+            "        self.left = None\n"
+            "        self.right = None\n\n"
+            "def insert(root, val):\n"
+            "    if not root:\n"
+            "        return BSTNode(val)\n"
+            "    if val < root.val:\n"
+            "        root.left = insert(root.left, val)\n"
+            "    elif val > root.val:\n"
+            "        root.right = insert(root.right, val)\n"
+            "    return root"
+        )
+    elif "search" in combined:
+        hint = "In a BST, search can eliminate half the tree at each step: go left if target < node.val, go right if target > node.val."
+        solution = (
+            "def search_bst(root, key):\n"
+            "    curr = root\n"
+            "    while curr and curr.val != key:\n"
+            "        if key < curr.val:\n"
+            "            curr = curr.left\n"
+            "        else:\n"
+            "            curr = curr.right\n"
+            "    return curr"
+        )
+    elif "application" in combined or "practical" in combined or "range" in combined:
+        hint = "For range queries, prune branches: only recurse left if low < root.val, and only recurse right if high > root.val."
+        solution = (
+            "def range_lookup(root, low, high):\n"
+            "    results = []\n"
+            "    def helper(node):\n"
+            "        if not node:\n"
+            "            return\n"
+            "        if low < node.val:\n"
+            "            helper(node.left)\n"
+            "        if low <= node.val <= high:\n"
+            "            results.append(node.val)\n"
+            "        if high > node.val:\n"
+            "            helper(node.right)\n"
+            "    helper(root)\n"
+            "    return results"
+        )
+    elif "binary tree" in combined and "search" not in combined:
+        hint = "Binary tree recursive functions evaluate the current node together with subtrees: `1 + max(left_depth, right_depth)`."
+        solution = (
+            "class TreeNode:\n"
+            "    def __init__(self, val=0, left=None, right=None):\n"
+            "        self.val = val\n"
+            "        self.left = left\n"
+            "        self.right = right\n\n"
+            "def max_depth(root):\n"
+            "    if not root:\n"
+            "        return 0\n"
+            "    return 1 + max(max_depth(root.left), max_depth(root.right))\n\n"
+            "def count_leaves(root):\n"
+            "    if not root:\n"
+            "        return 0\n"
+            "    if not root.left and not root.right:\n"
+            "        return 1\n"
+            "    return count_leaves(root.left) + count_leaves(root.right)"
+        )
+    elif "intro" in combined or "basic" in combined or "foundation" in combined:
+        hint = "Create a basic node container and connect pointers between instances, asserting value assignments."
+        solution = (
+            "class Node:\n"
+            "    def __init__(self, val):\n"
+            "        self.val = val\n"
+            "        self.next = None\n\n"
+            "# Instantiate linked chain:\n"
+            "head = Node(10)\n"
+            "head.next = Node(20)\n"
+            "head.next.next = Node(30)\n\n"
+            "# Verify links:\n"
+            "assert head.val == 10\n"
+            "assert head.next.val == 20\n"
+            "assert head.next.next.val == 30"
+        )
+    else:
+        hint = "Validate invariants and edge conditions (empty inputs, single elements) before implementing the main logic."
+        solution = (
+            "def is_valid_bst(node, min_val=float('-inf'), max_val=float('inf')):\n"
+            "    if not node:\n"
+            "        return True\n"
+            "    if not (min_val < node.val < max_val):\n"
+            "        return False\n"
+            "    return is_valid_bst(node.left, min_val, node.val) and is_valid_bst(node.right, node.val, max_val)"
+        )
+
+    return hint, solution
+
+
 @router.get("/tasks/{task_id}", response_model=LearningTaskResponse)
 async def get_task(
     task_id: int,
@@ -112,7 +338,7 @@ async def get_task(
 ):
     """
     Get full learning workspace data for a specific task.
-    Returns title, learning_objective, content (explanation), and practice_activity.
+    Returns title, learning_objective, content (explanation), practice_activity, hint, and model_solution.
     """
     task = db.execute(
         select(LearningTask)
@@ -128,7 +354,246 @@ async def get_task(
             detail="Task not found or not authorized."
         )
 
-    return task
+    # Fetch parent module and plan for accurate domain context
+    module = db.execute(select(LearningModule).where(LearningModule.id == task.module_id)).scalars().first()
+    plan = db.execute(select(LearningPlan).where(LearningPlan.id == module.learning_plan_id)).scalars().first() if module else None
+    subject_name = plan.subject if plan else ""
+    topic_name = plan.topic if plan else (module.title if module else "")
+
+    # Auto-enrich task content if it contains the old unhelpful syllabus dump or boilerplate placeholder
+    is_old_boilerplate = (
+        not task.content
+        or len(task.content.strip()) < 300
+        or "### 📋 Official College Syllabus & Curriculum Context" in task.content
+        or "Foundational Definition: Theoretical context and core terminology of" in task.content
+        or "### 🎯 Core Conceptual Focus" in task.content
+    )
+    if is_old_boilerplate and task.task_type == "lesson":
+        try:
+            rich_content = await generate_rich_lesson_content(
+                lesson=task.title,
+                subject=subject_name or "Computer Science",
+                topic=topic_name or "Core Principles",
+                learning_objective=task.learning_objective or "",
+            )
+            if rich_content and len(rich_content) > 300:
+                task.content = rich_content
+                db.commit()
+                db.refresh(task)
+        except Exception as e:
+            logger.warning(f"Failed to auto-enrich task {task.id} content: {e}")
+
+    hint, solution = _get_task_hint_and_solution(task, subject=subject_name, topic=topic_name)
+    evidence = db.execute(
+        select(LearningEvidence)
+        .where(LearningEvidence.task_id == task_id)
+        .where(LearningEvidence.user_id == current_user.id)
+        .where(LearningEvidence.evidence_type == "practice_evaluation")
+        .order_by(LearningEvidence.id.desc())
+    ).scalars().first()
+
+    return LearningTaskResponse(
+        id=task.id,
+        module_id=task.module_id,
+        title=task.title,
+        description=task.description,
+        task_type=task.task_type,
+        order_index=task.order_index,
+        is_completed=task.is_completed,
+        learning_objective=task.learning_objective,
+        content=task.content,
+        practice_activity=task.practice_activity,
+        estimated_duration_minutes=task.estimated_duration_minutes,
+        difficulty=task.difficulty,
+        hint=hint,
+        model_solution=solution,
+        latest_score=evidence.score if evidence else None,
+        created_at=task.created_at,
+        updated_at=task.updated_at,
+    )
+
+
+@router.post("/tasks/{task_id}/evaluate-practice", response_model=EvaluatePracticeResponse)
+async def evaluate_task_practice(
+    task_id: int,
+    payload: EvaluatePracticeRequest,
+    current_user: User = Depends(require_role("student")),
+    db: Session = Depends(get_db)
+):
+    """
+    Evaluates the student's submitted solution for a task's practice activity.
+    Only marks the task as completed if the student achieves a score >= 50%.
+    """
+    task = db.execute(
+        select(LearningTask)
+        .join(LearningModule, LearningTask.module_id == LearningModule.id)
+        .join(LearningPlan, LearningModule.learning_plan_id == LearningPlan.id)
+        .where(LearningTask.id == task_id)
+        .where(LearningPlan.user_id == current_user.id)
+    ).scalars().first()
+
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found or not authorized."
+        )
+
+    solution = payload.solution.strip()
+    if not solution or len(solution) < 15:
+        return EvaluatePracticeResponse(
+            score=20.0,
+            passed=False,
+            feedback="Your submission is too brief to evaluate. Please provide a substantive code implementation or analysis answering the practice prompt.",
+            strengths=[],
+            improvements=[
+                "Write a complete function or algorithm covering the required mechanics.",
+                "Verify edge cases and output invariants."
+            ],
+            is_completed=task.is_completed,
+        )
+
+    score: Optional[float] = None
+    feedback = ""
+    strengths: List[str] = []
+    improvements: List[str] = []
+
+    prompt = f"""You are an educational code reviewer and computer science grader.
+Evaluate the student's solution for the following practice activity:
+
+Lesson Title: {task.title}
+Objective: {task.learning_objective or 'Understand core computer science concepts'}
+Practice Challenge: {task.practice_activity or 'Implement the described component'}
+
+Student Submission:
+{solution}
+
+Evaluate the solution objectively.
+Passing threshold is 50/100:
+- Give >= 50 (e.g. 60-95) if the student made a genuine, mostly correct or logical effort demonstrating understanding of the core concept.
+- Give < 50 (e.g. 15-45) if the answer is completely off-topic, superficial gibberish, or fails to address the practice requirements.
+
+Return valid JSON ONLY in this format:
+{{
+  "score": <number between 0 and 100>,
+  "feedback": "<2-3 sentences evaluating the approach, correctness, and reasoning>",
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "improvements": ["<improvement 1>", "<improvement 2>"]
+}}"""
+
+    for prov in ["gemini", "groq", "openrouter"]:
+        try:
+            p = get_llm_provider(prov)
+            raw = await p.generate(prompt=prompt)
+            clean = raw.strip()
+            if clean.startswith("```json"):
+                clean = clean[7:]
+            elif clean.startswith("```"):
+                clean = clean[3:]
+            if clean.endswith("```"):
+                clean = clean[:-3]
+            parsed = json.loads(clean.strip())
+            score = float(parsed.get("score", 70.0))
+            feedback = parsed.get("feedback", "Good effort on this practice exercise.")
+            strengths = parsed.get("strengths", ["Addressed core task problem"])
+            improvements = parsed.get("improvements", [])
+            break
+        except Exception as e:
+            logger.warning(f"Provider {prov} evaluation failed: {e}")
+            continue
+
+    # Heuristic fallback if LLM is unavailable
+    if score is None:
+        sol_lower = solution.lower()
+        code_indicators = ["def ", "class ", "return ", "if ", "for ", "while ", "=", "(", ")", "{", "}"]
+        has_code = sum(1 for ind in code_indicators if ind in sol_lower) >= 3
+        words = len(solution.split())
+        
+        keywords = set(w.lower() for w in (task.title + " " + (task.practice_activity or "")).split() if len(w) > 4)
+        matched_kw = sum(1 for kw in keywords if kw in sol_lower)
+        
+        if has_code and (words >= 15 or matched_kw >= 2):
+            score = min(88.0, 55.0 + (matched_kw * 7.0) + min(20.0, words * 0.3))
+            feedback = f"Good effort! Your implementation demonstrates the required logic for '{task.title}' with appropriate control structures."
+            strengths = [
+                f"Implemented relevant logic aligned with {task.title}",
+                "Structured code with proper syntax and control flow"
+            ]
+            improvements = [
+                "Consider testing additional boundary cases and performance optimizations.",
+                "Ensure edge cases like empty inputs or extreme values are validated."
+            ]
+        elif words >= 25 and matched_kw >= 1:
+            score = 60.0
+            feedback = f"Your solution outlines the conceptual approach for '{task.title}'. Adding a fully runnable code implementation would make it even stronger."
+            strengths = ["Identified foundational principles"]
+            improvements = ["Provide a more complete, executable code snippet."]
+        else:
+            score = 35.0
+            feedback = f"The submission does not sufficiently address the specific requirements for '{task.title}'. Please provide a more complete code implementation or detailed step-by-step logic."
+            strengths = ["Started writing initial notes"]
+            improvements = [
+                f"Directly address the practice instructions for {task.title}.",
+                "Include concrete code blocks, invariants, and edge case handling."
+            ]
+
+    passed = score > 50.0
+
+    skill_update = None
+    try:
+        # Determine plan topic for Knowledge Domain update
+        parent_plan = db.execute(
+            select(LearningPlan)
+            .join(LearningModule, LearningModule.learning_plan_id == LearningPlan.id)
+            .where(LearningModule.id == task.module_id)
+        ).scalars().first()
+        topic_to_update = (parent_plan.topic if parent_plan else None) or task.title
+        skill_update = update_skill_on_task_practice(
+            db=db,
+            user=current_user,
+            plan_topic=topic_to_update,
+            score=score,
+            passed=passed,
+        )
+    except Exception as exc:
+        logger.warning(f"Failed to update skill model on practice evaluation: {exc}")
+
+    if passed:
+        task.is_completed = True
+        evidence = LearningEvidence(
+            user_id=current_user.id,
+            college_id=None,
+            task_id=task.id,
+            evidence_type="practice_evaluation",
+            score=score,
+            notes=f"Passed practice activity with score {score:.1f}%",
+        )
+        db.add(evidence)
+        db.commit()
+        db.refresh(task)
+    else:
+        # Task must remain incomplete if score is not strictly greater than 50%
+        task.is_completed = False
+        evidence = LearningEvidence(
+            user_id=current_user.id,
+            college_id=None,
+            task_id=task.id,
+            evidence_type="practice_evaluation",
+            score=score,
+            notes=f"Attempted practice activity with score {score:.1f}% (Needs > 50%)",
+        )
+        db.add(evidence)
+        db.commit()
+        db.refresh(task)
+
+    return EvaluatePracticeResponse(
+        score=round(score, 1),
+        passed=passed,
+        feedback=feedback,
+        strengths=strengths,
+        improvements=improvements,
+        is_completed=task.is_completed,
+        skill_update=skill_update,
+    )
 
 
 @router.patch("/tasks/{task_id}/complete", response_model=LearningTaskResponse)
@@ -140,6 +605,7 @@ async def complete_task(
     """
     Mark a learning task as completed.
     Validates that the task belongs to the authenticated user's plan.
+    Requires that the student has passed with > 50% score.
     """
     task = db.execute(
         select(LearningTask)
@@ -155,20 +621,49 @@ async def complete_task(
             detail="Task not found or not authorized."
         )
 
+    # Check for passing practice evidence (> 50%)
+    passing_evidence = db.execute(
+        select(LearningEvidence)
+        .where(LearningEvidence.task_id == task.id)
+        .where(LearningEvidence.user_id == current_user.id)
+        .where(LearningEvidence.evidence_type == "practice_evaluation")
+        .where(LearningEvidence.score > 50.0)
+        .order_by(LearningEvidence.id.desc())
+    ).scalars().first()
+
+    if not passing_evidence:
+        task.is_completed = False
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must score more than 50% on this task's practice evaluation before marking it as complete."
+        )
+
     task.is_completed = True
-    evidence = LearningEvidence(
-        user_id=current_user.id,
-        college_id=None,
-        task_id=task.id,
-        evidence_type="task_completion",
-        score=100.0,
-        notes=f"Completed learning task: {task.title}",
-    )
-    db.add(evidence)
     db.commit()
     db.refresh(task)
 
-    return task
+    hint, solution = _get_task_hint_and_solution(task)
+    score_val = getattr(passing_evidence, "score", None) if passing_evidence else None
+    return LearningTaskResponse(
+        id=task.id,
+        module_id=task.module_id,
+        title=task.title,
+        description=task.description,
+        task_type=task.task_type,
+        order_index=task.order_index,
+        is_completed=task.is_completed,
+        learning_objective=task.learning_objective,
+        content=task.content,
+        practice_activity=task.practice_activity,
+        estimated_duration_minutes=task.estimated_duration_minutes,
+        difficulty=task.difficulty,
+        hint=hint,
+        model_solution=solution,
+        latest_score=score_val,
+        created_at=task.created_at,
+        updated_at=task.updated_at,
+    )
 
 
 

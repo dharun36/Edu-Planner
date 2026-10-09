@@ -15,11 +15,11 @@ Your job is to analyze a student's persistent learner model, domain academic ski
 
 You MUST follow these rules:
 1. Identify skill gaps strictly based on the supplied academic skills and topic prerequisite gaps.
-2. Consider both domain academic skills (e.g. Arrays, Recursion, Binary Trees) and cognitive dimensions.
+2. Consider both domain academic skills and cognitive dimensions.
 3. ADAPTIVE PRINCIPLE: Skills with high mastery (>=70%) do NOT require remediation. Target weak (<70%) or missing prerequisites first, followed by core target skills.
 4. Distinguish clearly between strengths/known skills and weaknesses/missing skills.
-5. Respect any provided curriculum and RAG context; do NOT invent curriculum facts.
-6. Recommend learning priorities and a high-level learning strategy.
+5. SYLLABUS & CURRICULUM PRIORITY: When RAG Context contains an official syllabus, unit outline, or course material (especially tagged [Course Material:...]), your analysis MUST BE STRICTLY ALIGNED with the actual units and subtopics specified in that syllabus for this subject. Do NOT divert the student into generic or unrelated elementary programming lessons (e.g. generic arrays, basic variables, loops) when they are studying an advanced subject like Reinforcement Learning. Prerequisite concepts must support the syllabus topic, NOT replace it.
+6. Recommend learning priorities and a high-level learning strategy grounded in the provided syllabus.
 7. Return ONLY valid JSON matching the exact schema below. Do not include markdown code blocks. Do not produce the final lesson plan.
 
 JSON Schema:
@@ -93,26 +93,26 @@ async def run_analyst(state: AgentState) -> Dict[str, Any]:
     logger.info(f"[Agent: Analyst] RAG Chunks: {state.get('rag_chunks_retrieved', 0)}")
     
     try:
-        provider_name = "groq"
-        model_name = settings.groq_analyst_model
+        provider_name = "openrouter"
+        model_name = settings.openrouter_analyst_model
         logger.info(f"[Agent: Analyst] Invoking Provider: {provider_name}, Model: {model_name}")
         provider = get_llm_provider(provider_name, model=model_name, temperature=0.7)
         raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
     except Exception as e:
-        logger.warning(f"Analyst agent groq error: {e}. Falling back to openrouter provider...")
+        logger.warning(f"Analyst agent openrouter error: {e}. Falling back to gemini provider...")
         try:
-            provider_name = "openrouter"
-            model_name = settings.openrouter_analyst_model
+            provider_name = "gemini"
+            model_name = settings.gemini_model
             logger.info(f"[Agent: Analyst] Invoking Provider: {provider_name}, Model: {model_name}")
-            provider = get_llm_provider(provider_name, model=model_name, temperature=0.7)
+            provider = get_llm_provider(provider_name)
             raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
         except Exception as e2:
-            logger.warning(f"Analyst agent openrouter error: {e2}. Falling back to gemini provider...")
+            logger.warning(f"Analyst agent gemini error: {e2}. Falling back to groq provider...")
             try:
-                provider_name = "gemini"
-                model_name = settings.gemini_model
+                provider_name = "groq"
+                model_name = settings.groq_analyst_model
                 logger.info(f"[Agent: Analyst] Invoking Provider: {provider_name}, Model: {model_name}")
-                provider = get_llm_provider(provider_name)
+                provider = get_llm_provider(provider_name, model=model_name, temperature=0.7)
                 raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
             except Exception as e3:
                 logger.error(f"Analyst agent provider fallback failed: {e3}")

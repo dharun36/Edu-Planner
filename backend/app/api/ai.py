@@ -10,8 +10,10 @@ Key MVP changes:
 - Stores each lesson as a LearningTask with full instructional workspace data
 - Reads student's persistent learning goal from profile if not overridden in request
 """
+import asyncio
 import json
 import logging
+import re
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -27,6 +29,10 @@ from app.ai.state import AgentState, SkillScores
 from app.ai.graph import build_learning_graph
 from app.ai.exceptions import LLMConfigurationError, LLMAPIError
 from app.ai.rag import retrieve_rag_context
+from app.services.lesson_content_service import (
+    generate_rich_lesson_content,
+    _build_structured_fallback_lesson,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +147,9 @@ async def generate_learning_plan(
         rag_context_str, retrieved_chunk_count = await retrieve_rag_context(
             subject=subject,
             topic=topic,
+            user_id=current_user.id,
             college=current_user.college or "General",
+            college_id=current_user.college_id,
             year=current_user.year_of_study or "",
             semester=current_user.semester or "",
             regulation=current_user.regulation or "",
@@ -257,27 +265,48 @@ async def generate_learning_plan(
         # The AI optimizer result contains rich content we store in task fields
         optimizer_result = final_state.get("optimizer_result")
 
+        # Gather objectives for each lesson
+        lesson_objectives_list = []
+        for idx in range(len(lesson_seq)):
+            if learning_objectives and idx < len(learning_objectives):
+                lesson_objectives_list.append(learning_objectives[idx])
+            elif learning_objectives:
+                lesson_objectives_list.append(learning_objectives[-1])
+            else:
+                lesson_objectives_list.append("")
+
+        # Concurrently generate rich educational textbook-grade content for all lessons
+        generated_contents = await asyncio.gather(
+            *[
+                generate_rich_lesson_content(
+                    lesson=lesson,
+                    subject=subject,
+                    topic=topic,
+                    learning_objective=lesson_objectives_list[idx],
+                    syllabus_context=rag_context_str,
+                )
+                for idx, lesson in enumerate(lesson_seq)
+            ],
+            return_exceptions=True
+        )
+
         module_order = 0
         for idx, lesson in enumerate(lesson_seq):
             # Build module title from lesson
             mod_title = lesson[:250] if len(lesson) <= 250 else lesson[:247] + "..."
+            lesson_objective = lesson_objectives_list[idx]
 
-            # Build learning objective for this lesson
-            lesson_objective = ""
-            if learning_objectives and idx < len(learning_objectives):
-                lesson_objective = learning_objectives[idx]
-            elif learning_objectives:
-                lesson_objective = learning_objectives[-1]
-
-            # Build task content (explanation) — derived from lesson title + optimizer context
-            lesson_content = _build_lesson_content(lesson, subject, topic, optimizer_result)
+            # Use rich generated content with safe structured fallback
+            gen_content = generated_contents[idx] if idx < len(generated_contents) else None
+            if gen_content and not isinstance(gen_content, Exception) and len(str(gen_content).strip()) > 300:
+                lesson_content = str(gen_content).strip()
+            else:
+                lesson_content = _build_structured_fallback_lesson(
+                    lesson, subject, topic, lesson_objective, rag_context_str
+                )
 
             # Build practice activity for this lesson
-            lesson_practice = ""
-            if practice_activities and idx < len(practice_activities):
-                lesson_practice = practice_activities[idx]
-            elif practice_activities:
-                lesson_practice = practice_activities[0]
+            lesson_practice = _build_lesson_practice(lesson, subject, topic, idx, practice_activities)
 
             db_mod = LearningModule(
                 learning_plan_id=db_plan.id,
@@ -352,37 +381,75 @@ async def generate_learning_plan(
     )
 
 
-def _build_lesson_content(lesson: str, subject: str, topic: str, optimizer_result) -> str:
-    """Build instructional content for a lesson task."""
-    base = (
-        f"## {lesson}\n\n"
-        f"**Subject:** {subject}  |  **Topic:** {topic}\n\n"
-        f"### What You'll Learn\n"
-        f"This lesson covers **{lesson}**. Study the core concepts, understand the principles, "
-        f"and work through the examples carefully before attempting the practice activity.\n\n"
-        f"### Key Concepts\n"
-        f"- Understand the definition and purpose of {lesson.lower()}\n"
-        f"- Learn how {lesson.lower()} relates to the broader topic of {topic}\n"
-        f"- Identify common patterns and when to apply this knowledge\n\n"
-        f"### Study Tips\n"
-        f"1. Read through the concept carefully, taking notes on key terms.\n"
-        f"2. Draw diagrams or trace through examples by hand.\n"
-        f"3. Attempt the practice activity before checking your answers.\n"
-        f"4. When ready, complete the task and move to verification.\n"
-    )
+def _build_lesson_content(lesson: str, subject: str, topic: str, optimizer_result, rag_context: str = "") -> str:
+    """Build instructional content for a lesson task, incorporating official syllabus and RAG context."""
+    syllabus_snippet = ""
+    materials_cited = ""
+    if rag_context:
+        # Extract textbook / reference sections if present in RAG text
+        tb_matches = re.findall(r"(?:Textbook|Reference|Books?|Sutton|Barto|Edition)[\s\S]*?(?=\n\n|$)", rag_context, re.IGNORECASE)
+        if tb_matches:
+            materials_cited = tb_matches[0].strip()
+
+        # Find matching syllabus lines or units mentioning key terms of this lesson
+        lesson_words = [w.lower() for w in re.findall(r"\b\w{3,}\b", lesson)]
+        relevant_lines = []
+        for line in rag_context.split("\n"):
+            line_str = line.strip()
+            if not line_str or line_str.startswith("---") or line_str.startswith("["):
+                continue
+            if any(w in line_str.lower() for w in lesson_words):
+                relevant_lines.append(line_str)
+        if relevant_lines:
+            syllabus_snippet = "\n> ".join(relevant_lines[:4])
+
+    base = [
+        f"## {lesson}",
+        f"**Subject:** {subject}  |  **Topic:** {topic}",
+    ]
+
+    if syllabus_snippet:
+        base.extend([
+            "### 📋 Official College Syllabus & Curriculum Context",
+            f"> {syllabus_snippet}",
+        ])
+
+    base.extend([
+        "### 🎯 Core Conceptual Focus",
+        f"This lesson specifically covers **{lesson}** as prescribed in the academic syllabus for {subject}. "
+        f"Master the foundational principles, theoretical underpinnings, and practical formulations of this concept.",
+        "### 🔍 Detailed Topics & Key Formulations",
+        f"- **Foundational Definition:** Theoretical context and core terminology of {lesson.lower()}.",
+        f"- **System Dynamics & Formulation:** How {lesson.lower()} connects to {topic} and the broader subject.",
+        f"- **Applications & Trade-offs:** Algorithmic considerations, convergence, and edge cases.",
+    ])
+
+    if materials_cited:
+        base.extend([
+            "### 📚 Prescribed Course Reading & Textbooks",
+            f"{materials_cited}",
+        ])
+
+    base.extend([
+        "### 📝 Guided Study Checklist",
+        "1. Read through the syllabus unit topics and make detailed structured notes.",
+        "2. Formulate the mathematics, state representations, or pseudo-code on paper.",
+        "3. Attempt the hands-on practice challenge below to solidify understanding.",
+        "4. Once confident, mark the lesson as completed to unlock verification.",
+    ])
 
     if optimizer_result:
         try:
             notes = getattr(optimizer_result, "personalization_notes", "")
             strategy = getattr(optimizer_result, "difficulty_progression", "")
             if notes:
-                base += f"\n### Personalization Note\n{notes}\n"
+                base.append(f"### 💡 Adaptive Guidance Note\n{notes}")
             if strategy:
-                base += f"\n### Difficulty Progression\n{strategy}\n"
+                base.append(f"### 📈 Curriculum Progression\n{strategy}")
         except Exception:
             pass
 
-    return base
+    return "\n\n".join(base)
 
 
 def _estimate_difficulty(index: int, total: int) -> str:
@@ -394,3 +461,95 @@ def _estimate_difficulty(index: int, total: int) -> str:
         return "Medium"
     else:
         return "Hard"
+
+
+def _build_lesson_practice(lesson: str, subject: str, topic: str, idx: int, practice_activities: list[str]) -> str:
+    """Build a distinct, lesson-specific practice challenge."""
+    # Use distinct optimizer practice activity if available
+    if practice_activities and idx < len(practice_activities):
+        candidate = practice_activities[idx].strip()
+        # If candidate is distinct and not just a single generic line repeated everywhere
+        if candidate and (len(practice_activities) > 1 and candidate != practice_activities[0] or idx == 0):
+            return candidate
+
+    # Smart generator based on lesson and subject keywords
+    lesson_lower = lesson.lower()
+    subject_lower = subject.lower()
+    if any(k in lesson_lower or k in subject_lower for k in ["cloud", "deployment", "virtualization", "infrastructure", "saas", "paas", "iaas"]):
+        return (
+            f"**Hands-on Practice: Cloud Architecture & Deployment Analysis**\n\n"
+            f"1. **Scenario Evaluation:** An enterprise banking system requires low-latency frontend user scaling while safeguarding sensitive financial records under regulatory compliance.\n"
+            f"2. **Trade-Off Assessment:** Contrast Public, Private, and Hybrid models for {lesson} across CapEx/OpEx, tenancy isolation, and data sovereignty.\n"
+            f"3. **Architectural Recommendation:** Formulate your recommended infrastructure topology and justify your design choices."
+        )
+    elif any(k in lesson_lower or k in subject_lower for k in ["reinforcement", "bandit", "mdp", "q-learning", "sarsa"]):
+        return (
+            f"**Hands-on Practice: Reinforcement Learning Formulation**\n\n"
+            f"1. Define the formal MDP tuple $(S, A, P, R, \\gamma)$ for an agent learning {lesson}.\n"
+            f"2. Write Python pseudo-code demonstrating the value update equation or policy update rule.\n"
+            f"3. Analyze how the agent balances exploration versus exploitation in this scenario."
+        )
+    elif "array" in lesson_lower:
+        return (
+            f"**Hands-on Practice: Array Operations & Invariants**\n\n"
+            f"1. Implement dynamic array resizing from scratch and test boundary cases (insert at index 0, append beyond capacity).\n"
+            f"2. Measure and verify the amortized O(1) insertion runtime vs O(n) reallocation cost.\n"
+            f"3. Write test cases covering boundary indices and empty inputs."
+        )
+    elif "recursion" in lesson_lower:
+        return (
+            f"**Hands-on Practice: Recursion Mechanics**\n\n"
+            f"1. Write a recursive function related to {topic} with explicit base cases and recursive steps.\n"
+            f"2. Trace the execution call stack on paper for a small input of size 4 to visualize stack frames.\n"
+            f"3. Calculate the maximum recursion depth and memory overhead."
+        )
+    elif "insertion" in lesson_lower or "insert" in lesson_lower:
+        return (
+            f"**Hands-on Practice: Insertion & Invariant Maintenance**\n\n"
+            f"1. Implement the `insert(value)` operation step-by-step for {topic}.\n"
+            f"2. Verify that the structural invariants hold true after inserting duplicates and ordered keys.\n"
+            f"3. Trace the sequence `[50, 30, 70, 20, 40, 60, 80]` through your function."
+        )
+    elif "traversal" in lesson_lower:
+        return (
+            f"**Hands-on Practice: Tree Traversals**\n\n"
+            f"1. Implement in-order, pre-order, and post-order traversals for {topic}.\n"
+            f"2. Validate that in-order traversal of a valid BST produces an ascending sorted list.\n"
+            f"3. Write an iterative traversal using an explicit stack or queue."
+        )
+    elif "deletion" in lesson_lower or "delete" in lesson_lower:
+        return (
+            f"**Hands-on Practice: Node Deletion Edge Cases**\n\n"
+            f"1. Code the 3 deletion cases for {topic}: leaf node, single child node, and two children nodes.\n"
+            f"2. Implement in-order successor or predecessor replacement for nodes with two children.\n"
+            f"3. Test deleting the root node and assert tree invariants remain intact."
+        )
+    elif "search" in lesson_lower:
+        return (
+            f"**Hands-on Practice: Search Operation & Complexity**\n\n"
+            f"1. Implement iterative and recursive `search(key)` methods for {topic}.\n"
+            f"2. Count the exact number of pointer dereferences required to locate an existing vs missing key.\n"
+            f"3. Demonstrate the worst-case un-balanced tree scenario vs the optimal O(log n) balanced search."
+        )
+    elif "application" in lesson_lower or "practical" in lesson_lower:
+        return (
+            f"**Hands-on Practice: Real-World Application**\n\n"
+            f"1. Build a mini lookup index or autocomplete dictionary utilizing {topic}.\n"
+            f"2. Implement range queries (e.g. `find_between(low, high)`) and benchmark its efficiency.\n"
+            f"3. Document when {topic} outperforms a hash map or linear list."
+        )
+    elif "basic" in lesson_lower or "intro" in lesson_lower or "foundation" in lesson_lower:
+        return (
+            f"**Hands-on Practice: Core Foundations**\n\n"
+            f"1. Define the fundamental data structure class/struct representing {lesson}.\n"
+            f"2. Instantiate a 3-element structure manually in code and verify memory pointers/references.\n"
+            f"3. Write assertions confirming that each element satisfies the foundational definitions."
+        )
+    else:
+        return (
+            f"**Hands-on Practice: {lesson}**\n\n"
+            f"1. Write a minimal code implementation that directly demonstrates {lesson}.\n"
+            f"2. Test with at least 3 edge cases (empty input, single element, extreme values).\n"
+            f"3. Document the runtime and space complexity invariants for this component."
+        )
+

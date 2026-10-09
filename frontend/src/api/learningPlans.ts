@@ -13,6 +13,9 @@ export interface LearningTask {
   practice_activity?: string;
   estimated_duration_minutes?: number;
   difficulty?: string;
+  hint?: string;
+  model_solution?: string;
+  latest_score?: number;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +59,24 @@ export interface VerificationSubmitResult {
   message: string;
 }
 
+export interface SkillUpdateInfo {
+  skill_category: string;
+  previous_score: number;
+  new_score: number;
+  delta: number;
+  mastery_level: string;
+}
+
+export interface PracticeEvaluationResult {
+  score: number;
+  passed: boolean;
+  feedback: string;
+  strengths: string[];
+  improvements: string[];
+  is_completed: boolean;
+  skill_update?: SkillUpdateInfo;
+}
+
 export const learningPlansApi = {
   /**
    * Get all learning plans for the current student.
@@ -88,6 +109,15 @@ export const learningPlansApi = {
    */
   getPlanById: async (planId: number): Promise<LearningPlan> => {
     const response = await apiClient.get<LearningPlan>(`/learning-plans/${planId}`);
+    return response.data;
+  },
+
+  /**
+   * Set a learning plan as active, archiving any other active plan.
+   * Endpoint: PATCH /api/learning-plans/:planId/activate
+   */
+  activatePlan: async (planId: number): Promise<LearningPlan> => {
+    const response = await apiClient.patch<LearningPlan>(`/learning-plans/${planId}/activate`);
     return response.data;
   },
 
@@ -128,6 +158,21 @@ export const learningPlansApi = {
   ): Promise<VerificationSubmitResult> => {
     const response = await apiClient.post<VerificationSubmitResult>(`/learning-plans/${planId}/verify-submit`, { answers });
     return response.data;
-  }
+  },
+
+  /**
+   * Evaluate a student's practice solution for a task.
+   * Endpoint: POST /api/learning-plans/tasks/:taskId/evaluate-practice
+   */
+  evaluatePractice: async (
+    taskId: number,
+    solution: string
+  ): Promise<PracticeEvaluationResult> => {
+    const response = await apiClient.post<PracticeEvaluationResult>(
+      `/learning-plans/tasks/${taskId}/evaluate-practice`,
+      { solution }
+    );
+    return response.data;
+  },
 };
 

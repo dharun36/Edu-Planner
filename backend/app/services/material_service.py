@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, or_
 
 from app.db.database import get_session_factory
 from app.models.material import MaterialChunk, MaterialDocument
@@ -19,16 +19,25 @@ def _document_scope_filters(
     college: str | None = None,
     semester: str | None = None,
     regulation: str | None = None,
+    user_id: int | None = None,
+    is_personal: bool | None = None,
 ):
     query = select(MaterialDocument)
+    if user_id is not None:
+        query = query.where(MaterialDocument.user_id == user_id)
+    if is_personal is not None:
+        query = query.where(MaterialDocument.is_personal == is_personal)
     if college_id is not None:
-        query = query.where(MaterialDocument.college_id == college_id)
-    elif college is not None:
-        query = query.where(MaterialDocument.college == college)
-    if semester is not None:
-        query = query.where(MaterialDocument.semester == semester)
-    if regulation is not None:
-        query = query.where(MaterialDocument.regulation == regulation)
+        if college and college.strip() and college != "General":
+            query = query.where(or_(MaterialDocument.college_id == college_id, MaterialDocument.college == college.strip()))
+        else:
+            query = query.where(MaterialDocument.college_id == college_id)
+    elif college is not None and not is_personal and college.strip() and college != "General":
+        query = query.where(MaterialDocument.college == college.strip())
+    if semester is not None and not is_personal and semester.strip():
+        query = query.where(MaterialDocument.semester == semester.strip())
+    if regulation is not None and not is_personal and regulation.strip():
+        query = query.where(MaterialDocument.regulation == regulation.strip())
     return query
 
 
@@ -38,6 +47,8 @@ async def list_material_documents(
     college: str | None = None,
     semester: str | None = None,
     regulation: str | None = None,
+    user_id: int | None = None,
+    is_personal: bool | None = None,
 ) -> list[MaterialDocumentRead]:
     session_factory = get_session_factory()
     if session_factory is None:
@@ -45,7 +56,14 @@ async def list_material_documents(
 
     with session_factory() as session:
         documents = session.execute(
-            _document_scope_filters(college_id, college, semester, regulation)
+            _document_scope_filters(
+                college_id=college_id,
+                college=college,
+                semester=semester,
+                regulation=regulation,
+                user_id=user_id,
+                is_personal=is_personal,
+            ).order_by(MaterialDocument.created_at.desc())
         ).scalars().all()
     return [MaterialDocumentRead.model_validate(document) for document in documents]
 
@@ -53,10 +71,13 @@ async def list_material_documents(
 async def upload_material_document(
     *,
     file: UploadFile,
-    college: str,
-    semester: str,
-    regulation: str,
+    college: str = "Personal",
+    semester: str = "1",
+    regulation: str = "General",
     college_id: int | None = None,
+    user_id: int | None = None,
+    is_personal: bool = False,
+    subject: str | None = None,
 ) -> MaterialDocumentRead:
 
     if not file.filename:
@@ -90,23 +111,43 @@ async def upload_material_document(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The uploaded file did not contain readable text")
 
         with session_factory() as session:
-            existing = session.execute(
-                select(MaterialDocument).where(MaterialDocument.content_hash == content_hash)
-            ).scalar_one_or_none()
+            existing_query = select(MaterialDocument).where(MaterialDocument.content_hash == content_hash)
+            if is_personal and user_id is not None:
+                existing_query = existing_query.where(
+                    MaterialDocument.user_id == user_id,
+                    MaterialDocument.is_personal == True,
+                )
+            elif college_id is not None:
+                existing_query = existing_query.where(
+                    MaterialDocument.college_id == college_id,
+                    MaterialDocument.is_personal == False,
+                )
+            else:
+                existing_query = existing_query.where(MaterialDocument.user_id == user_id)
+
+            existing = session.execute(existing_query).scalars().first()
             if existing is not None:
                 if temp_path.exists():
                     temp_path.unlink()
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This file has already been indexed")
+                scope_desc = "your personal notes" if is_personal else "your college materials"
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"This file has already been uploaded ({existing.file_name}) to {scope_desc}."
+                )
 
-            # Move temp file to persistent hash named file
+            # Move temp file to persistent hash named file if not already present on disk
             persistent_path = upload_dir / f"{content_hash}{suffix}"
-            if persistent_path.exists():
-                persistent_path.unlink()
-            temp_path.rename(persistent_path)
+            if not persistent_path.exists():
+                temp_path.rename(persistent_path)
+            else:
+                if temp_path.exists():
+                    temp_path.unlink()
 
             document = MaterialDocument(
                 college=college,
                 college_id=college_id,
+                user_id=user_id,
+                is_personal=is_personal,
                 semester=semester,
                 regulation=regulation,
                 file_name=file.filename,
@@ -129,12 +170,15 @@ async def upload_material_document(
                     document_id=document.id,
                     content_hash=content_hash,
                     file_name=file.filename,
+                    user_id=user_id,
+                    is_personal=is_personal,
+                    subject=subject,
                 )
             except RuntimeError:
                 # Keep local uploads usable when optional vector-indexing packages
                 # are not installed. The stored chunks remain available locally.
                 embedding_model = "local-text"
-                ids = [f"local:{content_hash}:{index}" for index in range(len(chunks))]
+                ids = [f"local_doc_{document.id}:{index}" for index in range(len(chunks))]
 
             document.embedding_model = embedding_model
 
@@ -148,11 +192,12 @@ async def upload_material_document(
                         chroma_id=ids[index],
                         college=college,
                         college_ref_id=college_id,
+                        user_id=user_id,
+                        is_personal=is_personal,
                         semester=semester,
                         regulation=regulation,
                     )
                 )
-
 
             session.commit()
             session.refresh(document)
@@ -272,8 +317,19 @@ async def delete_material_document(material_id: int):
         except (ImportError, RuntimeError):
             pass
 
+        # Only unlink file from disk if no other document references it
         if document.file_path and Path(document.file_path).exists():
-            Path(document.file_path).unlink()
+            other_ref = session.execute(
+                select(MaterialDocument.id).where(
+                    MaterialDocument.file_path == document.file_path,
+                    MaterialDocument.id != material_id
+                )
+            ).scalars().first()
+            if not other_ref:
+                try:
+                    Path(document.file_path).unlink()
+                except OSError:
+                    pass
 
         session.execute(delete(MaterialChunk).where(MaterialChunk.document_id == material_id))
         session.delete(document)

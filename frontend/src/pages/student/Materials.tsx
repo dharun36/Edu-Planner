@@ -1,17 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { materialsApi, Material } from '../../api/materials';
-import { apiClient } from '../../api/client';
 import { Button } from '../../components/common/Button';
-import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 import {
   FileText,
   Search,
   Upload,
   X,
-  Check,
   ExternalLink,
-  Layers,
+  Trash2,
+  Lock,
 } from 'lucide-react';
 
 export default function Materials() {
@@ -22,9 +20,7 @@ export default function Materials() {
 
   // Upload modal state
   const [file, setFile] = useState<File | null>(null);
-  const [college, setCollege] = useState('General');
-  const [semester, setSemester] = useState('1');
-  const [regulation, setRegulation] = useState('2024');
+  const [subjectTag, setSubjectTag] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,18 +53,30 @@ export default function Materials() {
     try {
       await materialsApi.upload({
         file,
-        college,
-        semester,
-        regulation,
+        subject: subjectTag.trim() || undefined,
+        college: 'Personal',
+        semester: '1',
+        regulation: 'General',
       });
 
       await fetchMaterials();
       setShowUploadModal(false);
       setFile(null);
+      setSubjectTag('');
     } catch (err: any) {
       setUploadError(err.response?.data?.detail || 'Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this study note?')) return;
+    try {
+      await materialsApi.delete(id);
+      setMaterials((prev) => prev.filter((m) => m.id !== id));
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to delete material.');
     }
   };
 
@@ -78,28 +86,32 @@ export default function Materials() {
 
   return (
     <div className="max-w-3xl mx-auto py-4 sm:py-8 space-y-8">
-      {/* Page Header (Section 21) */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E5E5] pb-6">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
-            Knowledge Grounding
-          </span>
+        <div className="flex-1 min-w-0 max-w-xl">
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#525252]">
+            <Lock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>Personal Workspace Knowledge</span>
+          </div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#0A0A0A] mt-1">
-            Learning Materials
+            Personal Study Materials
           </h1>
-          <p className="text-sm text-[#737373] mt-1">
-            Course texts, lecture notes, and reference files used to ground your learning plans.
+          <p className="text-sm text-[#737373] mt-1 leading-relaxed">
+            Your private lecture notes, PDFs, and textbooks. Stored securely and kept separate from college materials, exclusively used to ground and personalize your learning paths.
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => setShowUploadModal(true)}
-        >
-          <Upload className="w-3.5 h-3.5 mr-1.5" />
-          Upload material
-        </Button>
+        <div className="shrink-0 self-start sm:self-auto">
+          <Button
+            variant="primary"
+            size="md"
+            className="shrink-0 whitespace-nowrap shadow-sm"
+            onClick={() => setShowUploadModal(true)}
+          >
+            <Upload className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+            Upload Personal Note
+          </Button>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -107,7 +119,7 @@ export default function Materials() {
         <Search className="w-4 h-4 text-[#737373] absolute left-3.5 top-3" />
         <input
           type="text"
-          placeholder="Search materials..."
+          placeholder="Search your personal study materials..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-[#E5E5E5] rounded-lg text-[#0A0A0A] placeholder-[#A3A3A3] focus-visible:outline-none focus-visible:border-[#0A0A0A] focus-visible:ring-1 focus-visible:ring-[#0A0A0A]"
@@ -117,15 +129,21 @@ export default function Materials() {
       {/* Materials List */}
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-[#525252] font-semibold uppercase tracking-wider">
-          <span>Your materials</span>
+          <span>Your private notes</span>
           <span>{filteredMaterials.length} files</span>
         </div>
 
         {filteredMaterials.length === 0 ? (
-          <div className="text-center py-12 bg-white border border-dashed border-[#E5E5E5] rounded-xl space-y-2">
-            <p className="text-xs text-[#737373]">
-              {searchQuery ? 'No matching materials found.' : 'No materials uploaded yet.'}
-            </p>
+          <div className="text-center py-12 bg-white border border-dashed border-[#E5E5E5] rounded-xl space-y-3 p-6">
+            <Lock className="w-8 h-8 text-[#A3A3A3] mx-auto" />
+            <div>
+              <p className="text-sm font-medium text-[#0A0A0A]">
+                {searchQuery ? 'No matching personal materials found.' : 'No personal materials uploaded yet.'}
+              </p>
+              <p className="text-xs text-[#737373] max-w-md mx-auto mt-1">
+                Upload your course slides, summaries, or reference PDFs here. They belong solely to your account and help AI tailor your personalized learning paths.
+              </p>
+            </div>
             <Button
               variant="secondary"
               size="sm"
@@ -149,9 +167,12 @@ export default function Materials() {
                         {mat.file_name}
                       </span>
                       <Badge variant="neutral">{ext}</Badge>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Personal
+                      </span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-[#737373]">
-                      <span>{mat.chunk_count || 48} indexed sections</span>
+                      <span>{mat.chunk_count || 1} indexed sections</span>
                       <span>•</span>
                       <span>
                         {mat.created_at
@@ -160,19 +181,19 @@ export default function Materials() {
                               day: 'numeric',
                               year: 'numeric',
                             })
-                          : 'Reference doc'}
+                          : 'Personal doc'}
                       </span>
                     </div>
                   </div>
 
                   <div className="shrink-0 flex items-center gap-2">
                     <Button
-                      variant="secondary"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => alert(`Opening ${mat.file_name} in learning reader.`)}
+                      onClick={() => handleDelete(mat.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Open
-                      <ExternalLink className="w-3.5 h-3.5 ml-1 text-[#737373]" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -182,14 +203,17 @@ export default function Materials() {
         )}
       </div>
 
-      {/* Upload Modal (Section 21) */}
+      {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4">
           <div className="bg-white border border-[#E5E5E5] rounded-xl max-w-md w-full p-6 space-y-5 shadow-sm">
             <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-3">
-              <h3 className="font-semibold text-sm text-[#0A0A0A]">
-                Upload Learning Material
-              </h3>
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-semibold text-sm text-[#0A0A0A]">
+                  Upload Personal Study Material
+                </h3>
+              </div>
               <button
                 onClick={() => setShowUploadModal(false)}
                 className="text-[#737373] hover:text-[#0A0A0A]"
@@ -198,8 +222,12 @@ export default function Materials() {
               </button>
             </div>
 
+            <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-[#525252] leading-relaxed">
+              <strong>Private &amp; Separate:</strong> Materials uploaded here belong solely to your individual account. They are stored separately from college materials and are never visible to teachers or other students.
+            </div>
+
             {uploadError && (
-              <div className="p-3 text-xs bg-white border border-[#262626] text-[#0A0A0A] rounded-lg">
+              <div className="p-3 text-xs bg-red-50 border border-red-200 text-red-800 rounded-lg">
                 {uploadError}
               </div>
             )}
@@ -225,6 +253,19 @@ export default function Materials() {
                 </p>
               </div>
 
+              <div>
+                <label className="text-xs font-medium text-[#525252] block mb-1">
+                  Subject / Topic Tag (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Data Structures, Arrays, BST"
+                  value={subjectTag}
+                  onChange={(e) => setSubjectTag(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white border border-[#E5E5E5] rounded-lg text-[#0A0A0A] focus-visible:outline-none focus-visible:border-[#0A0A0A]"
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
@@ -240,7 +281,7 @@ export default function Materials() {
                   size="sm"
                   isLoading={isUploading}
                 >
-                  Upload & Index
+                  Upload &amp; Index
                 </Button>
               </div>
             </form>

@@ -29,6 +29,7 @@ import StudentViewer from './pages/teacher/StudentViewer';
 // College Admin
 import CollegeAdminLayout from './layouts/CollegeAdminLayout';
 import CollegeAdminDashboard from './pages/college_admin/CollegeAdminDashboard';
+import CollegeMaterialsManager from './pages/college_admin/CollegeMaterialsManager';
 import StudentRegistryManager from './pages/college_admin/StudentRegistryManager';
 import TeacherInviteManager from './pages/college_admin/TeacherInviteManager';
 import AcademicStructureManager from './pages/college_admin/AcademicStructureManager';
@@ -83,6 +84,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['college_admin']} />}>
               <Route element={<CollegeAdminLayout />}>
                 <Route path="/college-admin/dashboard" element={<CollegeAdminDashboard />} />
+                <Route path="/college-admin/materials" element={<CollegeMaterialsManager />} />
                 <Route path="/college-admin/students" element={<StudentRegistryManager />} />
                 <Route path="/college-admin/teachers" element={<TeacherInviteManager />} />
                 <Route path="/college-admin/academic" element={<AcademicStructureManager />} />

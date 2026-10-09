@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   Building2,
+  BookOpen,
   LogOut,
   Menu,
   X,
@@ -30,6 +31,7 @@ export default function CollegeAdminLayout() {
 
   const navItems = [
     { name: 'Dashboard', path: '/college-admin/dashboard', icon: LayoutDashboard },
+    { name: 'Course Materials', path: '/college-admin/materials', icon: BookOpen },
     { name: 'Student Registry', path: '/college-admin/students', icon: GraduationCap },
     { name: 'Faculty & Invites', path: '/college-admin/teachers', icon: Users },
     { name: 'Departments & Courses', path: '/college-admin/academic', icon: Building2 },

@@ -27,14 +27,39 @@ router = APIRouter(prefix="/materials", tags=["materials"])
 
 @router.get("", response_model=list[MaterialDocumentRead])
 async def materials_list(
+    semester: str | None = None,
+    regulation: str | None = None,
+    college: str | None = None,
     current_user: User = Depends(get_current_user),
 ) -> list[MaterialDocumentRead]:
-    """List all materials accessible to the current student."""
+    """List materials accessible to the current user (personal for students, institutional for college admin/teachers)."""
+    if current_user.role == "student":
+        return await list_material_documents(
+            user_id=current_user.id,
+            is_personal=True,
+        )
+    if current_user.role == "college_admin":
+        return await list_material_documents(
+            college_id=current_user.college_id,
+            college=college or current_user.college,
+            semester=semester,
+            regulation=regulation,
+            is_personal=False,
+        )
+    if current_user.role == "teacher":
+        return await list_material_documents(
+            college_id=current_user.college_id,
+            college=college or current_user.college or current_user.learning_subject or "General",
+            semester=semester or current_user.semester,
+            regulation=regulation or current_user.regulation,
+            is_personal=False,
+        )
+    # platform_admin or fallback
     return await list_material_documents(
-        college_id=None,
-        college=current_user.learning_subject or "General",
-        semester=current_user.semester,
-        regulation=current_user.regulation,
+        college_id=current_user.college_id,
+        college=college or current_user.college,
+        semester=semester,
+        regulation=regulation,
     )
 
 
@@ -48,19 +73,40 @@ async def material_upload(
     current_user: User = Depends(get_current_user),
 ) -> MaterialDocumentRead:
     """
-    Upload a learning material document.
-
-    The document is indexed for vector search and can be used as context
-    for AI learning plan generation.  Upload is optional — plans work
-    without materials using general domain knowledge.
+    Upload learning material.
+    For students: saved as private personal notes separated from college material.
+    For college admin / teachers / staff: indexed as institutional course material for students' RAG.
     """
-    effective_subject = college or subject or current_user.learning_subject or "General"
+    effective_subject = subject or current_user.learning_subject or "General"
+    is_personal = (current_user.role == "student")
+
+    effective_college = "Personal" if is_personal else ""
+    if not is_personal:
+        if college and college.strip() and college != "Personal":
+            effective_college = college.strip()
+        elif current_user.college:
+            effective_college = current_user.college
+        elif current_user.college_id:
+            from app.db.database import get_session_factory
+            from app.models.college import College
+            sf = get_session_factory()
+            if sf:
+                with sf() as session:
+                    c = session.get(College, current_user.college_id)
+                    if c:
+                        effective_college = c.name
+        if not effective_college:
+            effective_college = "General"
+
     return await upload_material_document(
         file=file,
-        college=effective_subject,
+        college=effective_college,
         semester=semester,
         regulation=regulation,
-        college_id=None,
+        college_id=current_user.college_id if not is_personal else None,
+        user_id=current_user.id,
+        is_personal=is_personal,
+        subject=effective_subject,
     )
 
 
@@ -78,8 +124,14 @@ async def get_material_detail(
     material_id: int,
     current_user: User = Depends(get_current_user),
 ) -> Any:
-    """Get full details of a material document including its chunks."""
-    return await get_material_document_detail(material_id)
+    """Get full details of a material document. Enforces ownership for personal materials."""
+    detail = await get_material_document_detail(material_id)
+    if detail.get("is_personal") and detail.get("user_id") != current_user.id and current_user.role != "platform_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view another student's personal material."
+        )
+    return detail
 
 
 @router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -87,7 +139,31 @@ async def delete_material(
     material_id: int,
     current_user: User = Depends(get_current_user),
 ):
-    """Delete a material document."""
+    """Delete a material document. Allows owner, college admin of same college, or platform admin."""
     from fastapi import Response
+    from app.db.database import get_session_factory
+    from app.models.material import MaterialDocument
+
+    session_factory = get_session_factory()
+    if session_factory:
+        with session_factory() as session:
+            doc = session.get(MaterialDocument, material_id)
+            if not doc:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Material not found")
+            
+            is_owner = (doc.user_id == current_user.id)
+            is_college_admin = (
+                current_user.role == "college_admin"
+                and doc.college_id is not None
+                and doc.college_id == current_user.college_id
+            )
+            is_platform_admin = (current_user.role == "platform_admin")
+
+            if not (is_owner or is_college_admin or is_platform_admin):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You do not have permission to delete this material."
+                )
+
     await delete_material_document(material_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

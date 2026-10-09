@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../components/auth/AuthProvider';
 import { aiApi } from '../../api/ai';
 import {
@@ -8,7 +8,7 @@ import {
   LearningModule,
   LearningTask,
 } from '../../api/learningPlans';
-import { LearningPlanRequest, LearningPlanResponse } from '../../types/learningPlan';
+import { LearningPlanRequest } from '../../types/learningPlan';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
@@ -24,15 +24,22 @@ import {
   RotateCcw,
   Layers,
   Award,
+  History,
+  Play,
+  Check,
 } from 'lucide-react';
 
 export default function LearningPlanGenerator() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  const [allPlans, setAllPlans] = useState<LearningPlan[]>([]);
   const [activePlan, setActivePlan] = useState<LearningPlan | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<LearningPlan | null>(null);
   const [selectedModule, setSelectedModule] = useState<LearningModule | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [activatingId, setActivatingId] = useState<number | null>(null);
 
   // Form states
   const [formData, setFormData] = useState<LearningPlanRequest>({
@@ -49,18 +56,38 @@ export default function LearningPlanGenerator() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
-    loadActivePlan();
+    loadPlans();
   }, []);
 
-  const loadActivePlan = async () => {
+  const loadPlans = async (targetPlanId?: number) => {
     setIsLoading(true);
     try {
-      const plan = await learningPlansApi.getActivePlan();
-      setActivePlan(plan);
-      if (plan && plan.modules && plan.modules.length > 0) {
-        setSelectedModule(plan.modules[0]);
+      const [plansData, activeData] = await Promise.all([
+        learningPlansApi.getAllPlans(),
+        learningPlansApi.getActivePlan(),
+      ]);
+
+      setAllPlans(plansData);
+      setActivePlan(activeData);
+
+      // Determine which plan to display:
+      // Priority 1: explicitly passed targetPlanId
+      // Priority 2: URL param ?planId=
+      // Priority 3: active plan
+      // Priority 4: first plan in allPlans
+      const queryId = searchParams.get('planId') ? Number(searchParams.get('planId')) : null;
+      const selectId = targetPlanId || queryId || activeData?.id || (plansData.length > 0 ? plansData[0].id : null);
+
+      const target = plansData.find((p) => p.id === selectId) || activeData || plansData[0] || null;
+      setCurrentPlan(target);
+
+      if (target && target.modules && target.modules.length > 0) {
+        setSelectedModule(target.modules[0]);
+      } else {
+        setSelectedModule(null);
       }
     } catch {
       // Intentionally quiet
@@ -69,16 +96,45 @@ export default function LearningPlanGenerator() {
     }
   };
 
+  const handleSelectPlan = (plan: LearningPlan) => {
+    setCurrentPlan(plan);
+    setSearchParams({ planId: String(plan.id) });
+    if (plan.modules && plan.modules.length > 0) {
+      setSelectedModule(plan.modules[0]);
+    } else {
+      setSelectedModule(null);
+    }
+  };
+
+  const handleActivatePlan = async (planId: number) => {
+    setActivatingId(planId);
+    try {
+      const activated = await learningPlansApi.activatePlan(planId);
+      setActivePlan(activated);
+      // Reload plans to refresh statuses
+      await loadPlans(planId);
+      setSuccessMsg(`Plan "${activated.topic}" is now your active focus!`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to activate plan.');
+    } finally {
+      setActivatingId(null);
+    }
+  };
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
     setError('');
+    setSuccessMsg('');
 
     try {
       await aiApi.generateLearningPlan(formData);
-      // Reload active plan from database
-      await loadActivePlan();
+      // Reload plans and select the newest active plan
+      await loadPlans();
       setShowCreateForm(false);
+      setSuccessMsg('New learning path synthesized successfully! Your previous paths remain preserved below.');
+      setTimeout(() => setSuccessMsg(''), 6000);
     } catch (err: any) {
       setError(
         err.response?.data?.detail || 'Failed to generate learning plan. Please try again.'
@@ -98,8 +154,34 @@ export default function LearningPlanGenerator() {
     return { label: 'Upcoming', badge: 'needs_attention' as const };
   };
 
+  const computePlanProgress = (plan: LearningPlan) => {
+    let total = 0;
+    let completed = 0;
+    (plan.modules || []).forEach((m) => {
+      (m.tasks || []).forEach((t) => {
+        total++;
+        if (t.is_completed) completed++;
+      });
+    });
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, percent };
+  };
+
   return (
-    <div className="max-w-4xl mx-auto py-4 sm:py-8 space-y-10">
+    <div className="max-w-4xl mx-auto py-4 sm:py-8 space-y-8">
+      {/* Top Notification Messages */}
+      {successMsg && (
+        <div className="p-4 text-xs bg-[#F5F5F5] border border-[#0A0A0A] text-[#0A0A0A] rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#0A0A0A]" />
+            <span>{successMsg}</span>
+          </div>
+          <button onClick={() => setSuccessMsg('')} className="text-[#737373] hover:text-[#0A0A0A]">
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E5E5] pb-6">
         <div>
@@ -107,19 +189,19 @@ export default function LearningPlanGenerator() {
             Personalized Path
           </span>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#0A0A0A] mt-1">
-            {activePlan?.topic || formData.topic}
+            {currentPlan?.topic || formData.topic}
           </h1>
           <p className="text-sm text-[#737373] mt-1">
-            {activePlan?.learning_goal || formData.learning_goal}
+            {currentPlan?.learning_goal || formData.learning_goal}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {activePlan && (
+          {currentPlan && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/student/verify/${activePlan.id}`)}
+              onClick={() => navigate(`/student/verify/${currentPlan.id}`)}
             >
               <Award className="w-3.5 h-3.5 mr-1.5" />
               Verify Plan
@@ -130,10 +212,111 @@ export default function LearningPlanGenerator() {
             size="sm"
             onClick={() => setShowCreateForm(!showCreateForm)}
           >
-            {showCreateForm ? 'Back to Plan' : 'Generate Next Plan'}
+            {showCreateForm ? (
+              'Back to Path'
+            ) : (
+              <>
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                New Plan
+              </>
+            )}
           </Button>
         </div>
       </div>
+
+      {/* PLAN SELECTOR / HISTORY BAR: Keep old and new plans clearly accessible */}
+      {allPlans.length > 0 && !showCreateForm && (
+        <section className="bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-[#525252]" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+                Your Learning Plans ({allPlans.length})
+              </span>
+            </div>
+            <span className="text-xs text-[#737373]">
+              Switch focus between plans or resume prior studies
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {allPlans.map((plan) => {
+              const isSelected = currentPlan?.id === plan.id;
+              const isActiveFocus = activePlan?.id === plan.id || plan.status === 'active';
+              const progress = computePlanProgress(plan);
+
+              return (
+                <div
+                  key={plan.id}
+                  onClick={() => handleSelectPlan(plan)}
+                  className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                    isSelected
+                      ? 'border-[#0A0A0A] bg-white shadow-sm ring-1 ring-[#0A0A0A]'
+                      : 'border-[#E5E5E5] bg-white hover:border-[#A3A3A3]'
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-[#0A0A0A] truncate">
+                        {plan.topic}
+                      </span>
+                      {isActiveFocus ? (
+                        <Badge variant="mastered">Active</Badge>
+                      ) : plan.status === 'completed' ? (
+                        <Badge variant="mastered">Completed</Badge>
+                      ) : (
+                        <Badge variant="neutral">Saved</Badge>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#737373] truncate">
+                      {plan.subject}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] text-[#737373]">
+                      <span>Progress</span>
+                      <span className="font-medium text-[#0A0A0A]">
+                        {progress.completed}/{progress.total} tasks ({progress.percent}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-[#E5E5E5] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          progress.percent === 100
+                            ? 'bg-[#0A0A0A]'
+                            : progress.percent > 0
+                            ? 'bg-[#525252]'
+                            : 'bg-[#D4D4D4]'
+                        }`}
+                        style={{ width: `${progress.percent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {!isActiveFocus && isSelected && (
+                    <div className="pt-1 border-t border-[#F5F5F5]">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full text-xs h-7"
+                        isLoading={activatingId === plan.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleActivatePlan(plan.id);
+                        }}
+                      >
+                        <Play className="w-3 h-3 mr-1" />
+                        Set as Active Focus
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* CREATE NEW ADAPTIVE PLAN FORM (Collapsible) */}
       {showCreateForm ? (
@@ -144,6 +327,7 @@ export default function LearningPlanGenerator() {
             </h2>
             <p className="text-xs text-[#737373]">
               EduPlanner analyzes your persistent learner model, verifies prerequisites, and synthesizes a structured sequence of tasks.
+              Previous plans remain fully saved and accessible in your plans history.
             </p>
           </div>
 
@@ -213,21 +397,26 @@ export default function LearningPlanGenerator() {
             </div>
           </form>
         </div>
-      ) : activePlan && activePlan.modules && activePlan.modules.length > 0 ? (
+      ) : currentPlan && currentPlan.modules && currentPlan.modules.length > 0 ? (
         /* SECTION 15 & 16: Vertical Journey + Focused Module Detail */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Vertical Journey Column (Left 7 cols) */}
           <div className="lg:col-span-7 space-y-6">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
-              Your personalized path
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#525252]">
+                Curriculum Modules ({currentPlan.modules.length})
+              </span>
+              <span className="text-xs text-[#737373]">
+                {currentPlan.subject}
+              </span>
+            </div>
 
             <div className="relative space-y-0">
-              {activePlan.modules.map((module, idx) => {
+              {currentPlan.modules.map((module, idx) => {
                 const stepNum = String(idx + 1).padStart(2, '0');
                 const statusInfo = getModuleStatus(module);
                 const isSelected = selectedModule?.id === module.id;
-                const isLast = idx === activePlan.modules.length - 1;
+                const isLast = idx === currentPlan.modules.length - 1;
                 const completedTasks = (module.tasks || []).filter((t) => t.is_completed).length;
                 const totalTasks = (module.tasks || []).length;
 
@@ -299,7 +488,7 @@ export default function LearningPlanGenerator() {
               <div className="sticky top-20 bg-white border border-[#E5E5E5] rounded-xl p-6 space-y-6">
                 <div>
                   <div className="flex items-center justify-between text-xs text-[#737373]">
-                    <span>Module {selectedModule.order_index} of {activePlan.modules.length}</span>
+                    <span>Module {selectedModule.order_index} of {currentPlan.modules.length}</span>
                     <Badge variant={getModuleStatus(selectedModule).badge}>
                       {getModuleStatus(selectedModule).label}
                     </Badge>

@@ -817,6 +817,9 @@ def submit_assessment(
 
     assessment.is_completed = True
     assessment.completed_at = now
+    user_record = db.get(User, current_user.id)
+    if user_record:
+        user_record.onboarding_complete = True
     current_user.onboarding_complete = True
     db.commit()
 

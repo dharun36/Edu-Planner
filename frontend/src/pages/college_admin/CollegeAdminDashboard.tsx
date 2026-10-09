@@ -9,6 +9,7 @@ import {
   BookOpen,
   UserPlus,
   MailPlus,
+  Upload,
   Loader2,
   CheckCircle2,
   Clock,
@@ -86,6 +87,12 @@ export default function CollegeAdminDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
+          <Link to="/college-admin/materials">
+            <Button variant="outline" className="flex items-center gap-2 text-xs">
+              <Upload className="w-4 h-4" />
+              Course Materials (RAG)
+            </Button>
+          </Link>
           <Link to="/college-admin/students">
             <Button className="flex items-center gap-2 text-xs">
               <UserPlus className="w-4 h-4" />

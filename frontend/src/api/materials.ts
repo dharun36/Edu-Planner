@@ -36,10 +36,20 @@ export const materialsApi = {
     return response.data;
   },
 
-  list: async (college?: string, subject?: string): Promise<Material[]> => {
+  list: async (
+    filters?: { college?: string; subject?: string; semester?: string; regulation?: string } | string,
+    subject?: string
+  ): Promise<Material[]> => {
     const params = new URLSearchParams();
-    if (college) params.append('college', college);
-    if (subject) params.append('subject', subject);
+    if (typeof filters === 'string') {
+      if (filters) params.append('college', filters);
+      if (subject) params.append('subject', subject);
+    } else if (filters) {
+      if (filters.college) params.append('college', filters.college);
+      if (filters.subject) params.append('subject', filters.subject);
+      if (filters.semester) params.append('semester', filters.semester);
+      if (filters.regulation) params.append('regulation', filters.regulation);
+    }
     
     const response = await apiClient.get<Material[]>('/materials', { params });
     return response.data;
@@ -50,11 +60,12 @@ export const materialsApi = {
     return response.data;
   },
 
-  upload: async (payload: { file: File; college: string; semester: string; regulation: string }): Promise<Material> => {
+  upload: async (payload: { file: File; college?: string; subject?: string; semester?: string; regulation?: string }): Promise<Material> => {
     const formData = new FormData();
     formData.append('file', payload.file);
-    formData.append('college', payload.college || 'General');
-    formData.append('semester', payload.semester || 'General');
+    if (payload.subject) formData.append('subject', payload.subject);
+    formData.append('college', payload.college || 'Personal');
+    formData.append('semester', payload.semester || '1');
     formData.append('regulation', payload.regulation || 'General');
     
     const response = await apiClient.post<Material>('/materials', formData, {

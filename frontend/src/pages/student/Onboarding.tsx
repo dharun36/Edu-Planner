@@ -8,7 +8,7 @@ import { Input } from '../../components/common/Input';
 import { ArrowRight, Check, Sun, Moon } from 'lucide-react';
 
 export default function Onboarding() {
-  const { user, login } = useAuth();
+  const { user, login, updateUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -35,14 +35,20 @@ export default function Onboarding() {
         learning_subject: subject.trim(),
         learning_topic: topic.trim(),
         learning_goal: goal.trim(),
+        onboarding_complete: true,
       });
       const token = localStorage.getItem('token') || '';
       if (token) {
-        login(token, updatedUser);
+        login(token, { ...updatedUser, onboarding_complete: true });
+      } else {
+        updateUser({ ...updatedUser, onboarding_complete: true });
       }
       navigate('/student/plan');
     } catch {
       setError('Failed to save learning goal. Continuing to learning plan.');
+      if (user) {
+        updateUser({ ...user, onboarding_complete: true });
+      }
       navigate('/student/plan');
     } finally {
       setIsSaving(false);

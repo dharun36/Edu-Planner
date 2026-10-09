@@ -158,8 +158,94 @@ def record_verification_and_update_learner_model(
     db.refresh(student_skill)
 
     if passed:
+        plan.status = "completed"
+        db.commit()
+        db.refresh(plan)
         msg = f"Congratulations! You scored {score_percent:.0f}% ({correct_count}/{total_count}). Your mastery of {plan.topic} increased to {new_score:.0f}%! Plan completed ★"
     else:
         msg = f"You scored {score_percent:.0f}% ({correct_count}/{total_count}). Mastery adjusted to {new_score:.0f}%. Score at least 60% to complete the plan."
 
     return passed, score_percent, correct_count, total_count, msg, new_score, skill_category
+
+
+def update_skill_on_task_practice(
+    db: Session,
+    user: User,
+    plan_topic: str,
+    score: float,
+    passed: bool,
+) -> Optional[dict[str, Any]]:
+    """
+    Dynamically adjusts the student's knowledge domain (skill score) based on practice task results.
+    - If passed (score > 50%): increases score based on performance tier (+1% to +4%).
+    - If failed (score <= 50%): reduces score slightly (-1.5% to -2.5%) down to a base floor.
+    Records updates in both student_skills and student_skill_history.
+    """
+    skill_category = plan_topic.strip()
+    if not skill_category:
+        return None
+
+    student_skill = db.execute(
+        select(StudentSkill).where(
+            StudentSkill.user_id == user.id,
+            StudentSkill.skill_category.ilike(skill_category),
+        )
+    ).scalars().first()
+
+    now = utc_now()
+    if not student_skill:
+        # Create baseline entry for this skill if not already present
+        initial_score = 50.0 if passed else 30.0
+        student_skill = StudentSkill(
+            user_id=user.id,
+            college_id=user.college_id,
+            skill_category=skill_category,
+            score=initial_score,
+            mastery_level=compute_mastery_level(initial_score),
+            last_updated=now,
+        )
+        db.add(student_skill)
+        db.flush()
+
+    prev_score = float(student_skill.score)
+
+    if passed:
+        if score >= 85.0:
+            delta = 4.0
+        elif score >= 70.0:
+            delta = 3.0
+        elif score >= 60.0:
+            delta = 2.0
+        else:
+            delta = 1.0
+        new_score = min(100.0, prev_score + delta)
+    else:
+        # Subtle decrement reflecting practice difficulty
+        delta = -2.5 if score < 30.0 else -1.5
+        new_score = max(10.0, prev_score + delta)
+
+    new_score = round(new_score, 1)
+    actual_delta = round(new_score - prev_score, 1)
+
+    # Record history log
+    history = StudentSkillHistory(
+        user_id=user.id,
+        skill_category=student_skill.skill_category,
+        score=new_score,
+        evidence_type="practice_task",
+        recorded_at=now,
+    )
+    db.add(history)
+
+    student_skill.score = new_score
+    student_skill.mastery_level = compute_mastery_level(new_score)
+    student_skill.last_updated = now
+
+    return {
+        "skill_category": student_skill.skill_category,
+        "previous_score": prev_score,
+        "new_score": new_score,
+        "delta": actual_delta,
+        "mastery_level": student_skill.mastery_level,
+    }
+

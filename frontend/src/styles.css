@@ -166,4 +166,10 @@
   background-color: #262626 !important;
 }
 
+/* Progress bar dark mode high-contrast */
+.dark [data-progress-bar-fill="true"] {
+  background-color: #fafafa !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
 

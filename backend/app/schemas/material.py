@@ -26,6 +26,9 @@ class MaterialDocumentRead(MaterialDocumentCreate):
     chunk_count: int
     created_at: datetime
     updated_at: datetime
+    user_id: int | None = None
+    is_personal: bool = False
+    college_id: int | None = None
 
 
 class MaterialChunkRead(BaseModel):

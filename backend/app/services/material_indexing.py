@@ -11,7 +11,6 @@ from app.core.config import get_settings
 
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
-
 @dataclass(frozen=True)
 class ParsedChunk:
     content: str
@@ -64,13 +63,36 @@ def parse_material_file(file_path: str | Path, *, chunk_size: int = 900, overlap
     return parsed
 
 
+class _ChromaEmbeddingAdapter:
+    def __init__(self, ef: Any) -> None:
+        self._ef = ef
+
+    def encode(self, texts: list[str] | str, normalize_embeddings: bool = True, **kwargs: Any) -> Any:
+        import numpy as np
+
+        if isinstance(texts, str):
+            texts = [texts]
+        embeddings = self._ef(texts)
+        return np.array(embeddings, dtype=float)
+
+
 @lru_cache(maxsize=1)
 def get_embedding_model() -> Any:
     try:
-        from sentence_transformers import SentenceTransformer
-    except ImportError as exc:
-        raise RuntimeError("Install sentence-transformers to index materials") from exc
-    return SentenceTransformer(EMBEDDING_MODEL_NAME)
+        import importlib
+
+        st = importlib.import_module("sentence_transformers")
+        return st.SentenceTransformer(EMBEDDING_MODEL_NAME)
+    except Exception:
+        pass
+
+    try:
+        from chromadb.utils import embedding_functions
+
+        ef = embedding_functions.DefaultEmbeddingFunction()
+        return _ChromaEmbeddingAdapter(ef)
+    except Exception as exc:
+        raise RuntimeError("Install sentence-transformers or chromadb to index materials") from exc
 
 
 @lru_cache(maxsize=1)
@@ -94,11 +116,14 @@ def material_metadata(
     page_number: int | None = None,
     file_name: str | None = None,
     subject: str | None = None,
-) -> dict[str, str | int]:
-    metadata: dict[str, str | int] = {
+    user_id: int | None = None,
+    is_personal: bool = False,
+) -> dict[str, Any]:
+    metadata: dict[str, Any] = {
         "college": college.strip(),
         "semester": str(semester).strip(),
         "regulation": str(regulation).strip(),
+        "is_personal": str(is_personal).lower(),
     }
     if subject:
         metadata["subject"] = str(subject).strip()
@@ -110,6 +135,8 @@ def material_metadata(
         metadata["document_id"] = document_id
     if page_number is not None:
         metadata["page_number"] = page_number
+    if user_id is not None:
+        metadata["user_id"] = user_id
     return metadata
 
 
@@ -124,10 +151,12 @@ def index_chunks(
     content_hash: str,
     file_name: str | None = None,
     subject: str | None = None,
+    user_id: int | None = None,
+    is_personal: bool = False,
 ) -> list[str]:
     if not chunks:
         return []
-    ids = [f"{content_hash}:{index}" for index in range(len(chunks))]
+    ids = [f"doc_{document_id}:{index}" for index in range(len(chunks))]
     embeddings = get_embedding_model().encode([chunk.content for chunk in chunks], normalize_embeddings=True).tolist()
     get_chroma_collection().upsert(
         ids=ids,
@@ -143,6 +172,8 @@ def index_chunks(
                 page_number=chunk.page_number,
                 file_name=file_name,
                 subject=subject,
+                user_id=user_id,
+                is_personal=is_personal,
             )
             for chunk in chunks
         ],

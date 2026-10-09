@@ -47,11 +47,12 @@ export default function LearningGoal() {
         learning_subject: subject.trim(),
         learning_topic: topic.trim(),
         learning_goal: learningGoal.trim(),
+        onboarding_complete: true,
       });
 
       const token = localStorage.getItem('token') || '';
       if (token) {
-        login(token, updatedUser);
+        login(token, { ...updatedUser, onboarding_complete: true });
       }
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
