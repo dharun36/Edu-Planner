@@ -14,11 +14,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles = 'inline-flex items-center justify-center whitespace-nowrap shrink-0 rounded-lg font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A0A0A] focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-40 cursor-pointer select-none';
     
     const variants = {
-      primary: 'bg-[#0A0A0A] text-white hover:bg-[#262626] active:bg-[#171717]',
-      secondary: 'bg-white text-[#0A0A0A] border border-[#E5E5E5] hover:bg-[#F5F5F5] active:bg-[#E5E5E5]',
-      outline: 'bg-transparent text-[#0A0A0A] border border-[#262626] hover:bg-[#F5F5F5] active:bg-[#E5E5E5]',
-      ghost: 'bg-transparent text-[#262626] hover:bg-[#F5F5F5] hover:text-[#0A0A0A]',
-      danger: 'bg-[#262626] text-white hover:bg-[#0A0A0A]',
+      primary: 'bg-[#0A0A0A] text-white hover:bg-[#262626] active:bg-[#171717] dark:bg-[#FAFAFA] dark:text-[#0A0A0A] dark:hover:bg-[#E5E5E5]',
+      secondary: 'bg-white text-[#0A0A0A] border border-[#E5E5E5] hover:bg-[#F5F5F5] active:bg-[#E5E5E5] dark:bg-[#171717] dark:text-[#FAFAFA] dark:border-[#262626] dark:hover:bg-[#202020]',
+      outline: 'bg-transparent text-[#0A0A0A] border border-[#262626] hover:bg-[#F5F5F5] active:bg-[#E5E5E5] dark:text-[#FAFAFA] dark:border-[#525252] dark:hover:bg-[#202020]',
+      ghost: 'bg-transparent text-[#262626] hover:bg-[#F5F5F5] hover:text-[#0A0A0A] dark:text-[#A3A3A3] dark:hover:bg-[#202020] dark:hover:text-[#FAFAFA]',
+      danger: 'bg-[#262626] text-white hover:bg-[#0A0A0A] dark:bg-red-900/80 dark:hover:bg-red-800',
     };
     
     const sizes = {

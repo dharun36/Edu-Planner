@@ -232,3 +232,4 @@ def file_content_hash(file_path: str | Path) -> str:
 
 def file_mime_type(file_path: str | Path) -> str | None:
     return mimetypes.guess_type(str(file_path))[0]
+    
