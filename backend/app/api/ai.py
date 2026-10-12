@@ -275,35 +275,16 @@ async def generate_learning_plan(
             else:
                 lesson_objectives_list.append("")
 
-        # Concurrently generate rich educational textbook-grade content for all lessons
-        generated_contents = await asyncio.gather(
-            *[
-                generate_rich_lesson_content(
-                    lesson=lesson,
-                    subject=subject,
-                    topic=topic,
-                    learning_objective=lesson_objectives_list[idx],
-                    syllabus_context=rag_context_str,
-                )
-                for idx, lesson in enumerate(lesson_seq)
-            ],
-            return_exceptions=True
-        )
-
         module_order = 0
         for idx, lesson in enumerate(lesson_seq):
             # Build module title from lesson
             mod_title = lesson[:250] if len(lesson) <= 250 else lesson[:247] + "..."
             lesson_objective = lesson_objectives_list[idx]
 
-            # Use rich generated content with safe structured fallback
-            gen_content = generated_contents[idx] if idx < len(generated_contents) else None
-            if gen_content and not isinstance(gen_content, Exception) and len(str(gen_content).strip()) > 300:
-                lesson_content = str(gen_content).strip()
-            else:
-                lesson_content = _build_structured_fallback_lesson(
-                    lesson, subject, topic, lesson_objective, rag_context_str
-                )
+            # Fast structured pedagogical lesson compiler (rich LLM enrichment occurs on-demand when student opens task)
+            lesson_content = _build_structured_fallback_lesson(
+                lesson, subject, topic, lesson_objective, rag_context_str
+            )
 
             # Build practice activity for this lesson
             lesson_practice = _build_lesson_practice(lesson, subject, topic, idx, practice_activities)

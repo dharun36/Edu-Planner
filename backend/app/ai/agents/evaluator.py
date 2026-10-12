@@ -112,13 +112,13 @@ async def run_evaluator(state: AgentState) -> Dict[str, Any]:
     settings = get_settings()
     
     try:
-        provider_name = "openrouter"
-        model_name = settings.openrouter_evaluator_model
+        provider_name = "groq"
+        model_name = settings.groq_analyst_model
         logger.info(f"[Agent: Evaluator] Invoking Provider: {provider_name}, Model: {model_name}, Iteration: {state.get('iteration_count', 1)}")
         provider = get_llm_provider(provider_name, model=model_name, temperature=0.0)
         raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
     except Exception as e:
-        logger.warning(f"Evaluator agent openrouter error: {e}. Falling back to gemini provider...")
+        logger.warning(f"Evaluator agent groq error: {e}. Falling back to gemini provider...")
         try:
             provider_name = "gemini"
             model_name = settings.gemini_model
@@ -126,8 +126,16 @@ async def run_evaluator(state: AgentState) -> Dict[str, Any]:
             provider = get_llm_provider(provider_name, temperature=0.0)
             raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
         except Exception as e2:
-            logger.error(f"Evaluator agent provider fallback failed: {e2}")
-            raise
+            logger.warning(f"Evaluator agent gemini error: {e2}. Falling back to openrouter provider...")
+            try:
+                provider_name = "openrouter"
+                model_name = settings.openrouter_evaluator_model
+                logger.info(f"[Agent: Evaluator] Invoking Provider: {provider_name}, Model: {model_name}, Iteration: {state.get('iteration_count', 1)}")
+                provider = get_llm_provider(provider_name, model=model_name, temperature=0.0)
+                raw_response = await provider.generate(prompt=prompt, system_prompt=SYSTEM_PROMPT)
+            except Exception as e3:
+                logger.error(f"Evaluator agent provider fallback failed: {e3}")
+                raise
 
     # Parse response safely
     try:

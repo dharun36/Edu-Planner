@@ -33,6 +33,32 @@ def _sanitize_syllabus_context(syllabus_context: str, subject: str, topic: str) 
     return "\n".join(relevant_lines[:8])
 
 
+def strip_emojis(text: str) -> str:
+    """Remove emoji and pictographic symbols from text."""
+    if not text:
+        return ""
+    emoji_pattern = re.compile(
+        "["
+        "\U0001F600-\U0001F64F"
+        "\U0001F300-\U0001F5FF"
+        "\U0001F680-\U0001F6FF"
+        "\U0001F700-\U0001F77F"
+        "\U0001F780-\U0001F7FF"
+        "\U0001F800-\U0001F8FF"
+        "\U0001F900-\U0001F9FF"
+        "\U0001FA00-\U0001FA6F"
+        "\U0001FA70-\U0001FAFF"
+        "\U00002600-\U000026FF"
+        "\U00002700-\U000027BF"
+        "\U00002B50\U0000FE0F\U0000200D"
+        "]+",
+        flags=re.UNICODE
+    )
+    cleaned = emoji_pattern.sub("", text)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    return cleaned
+
+
 def _build_structured_fallback_lesson(
     lesson: str,
     subject: str,
@@ -54,7 +80,7 @@ def _build_structured_fallback_lesson(
         "",
         "---",
         "",
-        "## 1. 📌 Overview & Learning Objectives",
+        "## 1. Overview & Learning Objectives",
         f"This module provides a comprehensive, rigorous exploration of **{clean_lesson}** within the discipline of **{subject}**.",
         "",
         "### Key Learning Outcomes:",
@@ -66,7 +92,7 @@ def _build_structured_fallback_lesson(
     if clean_syllabus:
         md.extend([
             "",
-            "### 📋 Prescribed Academic Syllabus Context:",
+            "### Prescribed Academic Syllabus Context:",
             "> " + "\n> ".join(clean_syllabus.split("\n")),
         ])
 
@@ -74,7 +100,7 @@ def _build_structured_fallback_lesson(
         "",
         "---",
         "",
-        "## 2. 🏛️ Core Foundations & Architectural Mechanics",
+        "## 2. Core Foundations & Architectural Mechanics",
         f"In modern computing environments, **{clean_lesson}** represents a fundamental structural framework.",
         f"When designing systems under **{topic}**, architects must balance three primary constraints:",
         "1. **Isolation & Security:** Protecting sensitive workloads through virtualization, tenancy controls, and boundary policies.",
@@ -83,7 +109,7 @@ def _build_structured_fallback_lesson(
         "",
         "---",
         "",
-        "## 3. 🔍 In-Depth Conceptual Breakdown",
+        "## 3. In-Depth Conceptual Breakdown",
     ])
 
     for i, concept in enumerate(sub_concepts, start=1):
@@ -105,7 +131,7 @@ def _build_structured_fallback_lesson(
     md.extend([
         "---",
         "",
-        "## 4. 📊 Comprehensive Comparison Matrix",
+        "## 4. Comprehensive Comparison Matrix",
         "| Model / Dimension | Infrastructure Ownership | Multi-Tenancy | Cost Model | Security & Control | Scalability | Best Suited For |",
         "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
         "| **Public Cloud** | Third-Party Provider (AWS, GCP, Azure) | Multi-Tenant (Shared Physical HW) | OpEx (Pay-As-You-Go) | Shared Responsibility Model | Near-Infinite Elasticity | Web Apps, Startups, Variable Traffic |",
@@ -115,7 +141,7 @@ def _build_structured_fallback_lesson(
         "",
         "---",
         "",
-        "## 5. 🏢 Real-World Enterprise Scenarios",
+        "## 5. Real-World Enterprise Scenarios",
         "### Scenario A: Financial Technology (FinTech) Institution",
         "A retail bank runs its core transaction ledger and database containing personally identifiable information (PII) on a **Private Cloud** to strictly comply with financial privacy regulations. Meanwhile, it hosts public mobile-banking customer analytics and promotional landing pages on a **Public Cloud**, seamlessly bridged through secure encrypted API gateways (**Hybrid Cloud model**).",
         "",
@@ -124,14 +150,14 @@ def _build_structured_fallback_lesson(
         "",
         "---",
         "",
-        "## 6. ⚠️ Critical Design Considerations & Pitfalls",
+        "## 6. Critical Design Considerations & Pitfalls",
         "- **Vendor Lock-In:** Relying on proprietary cloud APIs makes cross-cloud migration expensive; use containerized abstractions (Docker, Kubernetes).",
         "- **Data Egress Costs:** Transferring large datasets between public and private clouds incurs significant bandwidth fees.",
         "- **Shared Responsibility Model:** In public clouds, the vendor secures the infrastructure *of* the cloud, while the customer is responsible for security *in* the cloud (IAM policies, encryption, and patch management).",
         "",
         "---",
         "",
-        "## 7. 🧠 Knowledge Check & Review Questions",
+        "## 7. Knowledge Check & Review Questions",
         "**Q1: What is the primary difference between a Public Cloud and a Private Cloud regarding multi-tenancy?**",
         "*Answer:* Public clouds utilize a multi-tenant model where physical hardware is shared across multiple unrelated clients with software-level isolation. Private clouds are strictly single-tenant, allocating physical and virtual resources exclusively to one organization.",
         "",
@@ -143,11 +169,11 @@ def _build_structured_fallback_lesson(
         "",
         "---",
         "",
-        "## 8. 🛠️ Guided Hands-on Practice Challenge",
+        "## 8. Guided Hands-on Practice Challenge",
         "Review the practice activity on the right-hand side of your workspace. Structure your response with explicit architectural arguments, trade-offs, and design rationale.",
     ])
 
-    return "\n".join(md)
+    return strip_emojis("\n".join(md))
 
 
 async def generate_rich_lesson_content(
@@ -178,26 +204,27 @@ INSTRUCTIONS:
 5. Include 2 real-world enterprise case study scenarios.
 6. Include 3 self-assessment conceptual questions with clear explanations to help the student test their understanding.
 7. Format everything in clean, professional GitHub-flavored Markdown with appropriate headings, bold terms, and lists.
+8. DO NOT USE ANY EMOJIS ANYWHERE in the output. Keep tone strictly professional, textbook-grade, and academic.
 
 Structure the response with these exact sections:
 # {clean_lesson}
-## 1. 📌 Overview & Learning Objectives
-## 2. 🏛️ Core Architectural Foundations
-## 3. 🔍 Deep Dive into Key Concepts & Mechanics
-## 4. 📊 Comprehensive Comparison Matrix
-## 5. 🏢 Real-World Enterprise Case Studies
-## 6. ⚠️ Critical Design Trade-Offs & Pitfalls
-## 7. 🧠 Knowledge Check & Review Questions (with explanations)
-## 8. 🛠️ Summary & Practical Takeaways
+## 1. Overview & Learning Objectives
+## 2. Core Architectural Foundations
+## 3. Deep Dive into Key Concepts & Mechanics
+## 4. Comprehensive Comparison Matrix
+## 5. Real-World Enterprise Case Studies
+## 6. Critical Design Trade-Offs & Pitfalls
+## 7. Knowledge Check & Review Questions (with explanations)
+## 8. Summary & Practical Takeaways
 """
 
-    for provider_name in ["openrouter", "gemini", "groq"]:
+    for provider_name in ["groq", "gemini", "openrouter"]:
         try:
             provider = get_llm_provider(provider_name)
             result = await provider.generate(prompt=prompt)
             if result and len(result.strip()) > 800:
                 logger.info(f"[Lesson Content] Successfully generated via {provider_name} ({len(result)} chars)")
-                return result.strip()
+                return strip_emojis(result.strip())
         except Exception as e:
             logger.warning(f"[Lesson Content] Provider '{provider_name}' failed: {e}")
 

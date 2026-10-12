@@ -23,8 +23,8 @@ def _with_retries(func):
                     raise LLMTimeoutError(f"Request timed out after {max_retries + 1} attempts") from e
                 logger.warning(f"Timeout on attempt {attempt + 1}. Retrying...")
             except httpx.HTTPStatusError as e:
-                # Do not retry on client errors except 429 Too Many Requests
-                if 400 <= e.response.status_code < 500 and e.response.status_code != 429:
+                # Do not stall on client errors (including 429 rate limits) - fail immediately to activate next provider
+                if 400 <= e.response.status_code < 500:
                     raise LLMAPIError(f"API Error {e.response.status_code}: {e.response.text}") from e
                 
                 if attempt == max_retries:
